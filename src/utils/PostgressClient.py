@@ -54,7 +54,7 @@ class PostgressClient:
             
         if self.pool is not None:
             async with self.pool.acquire() as conn:  # type: ignore
-                row = await conn.fetchrow(sql, dumps(data))  # type: ignore
+                row = await conn.fetchrow(sql, dumps(data), "0")  # type: ignore
                 return dict(row) if row else {}  # type: ignore
         return {}
         
@@ -69,6 +69,17 @@ class PostgressClient:
                 row = await conn.fetchrow(sql, dumps(data), id)  # type: ignore
                 return dict(row) if row else {}  # type: ignore
         return {}
+    
+    async def delete(self, sql: str, id: str | int) -> list[Dict[str, Any]]:
+        """Ejecuta una consulta y retorna múltiples registros"""
+        if self.pool is None:
+            await self.connect()
+        
+        if self.pool is not None:
+            async with self.pool.acquire() as conn:  # type: ignore
+                rows = await conn.fetch(sql, id)  # type: ignore
+                return [dict(row) for row in rows] if rows else []  # type: ignore
+        return []
         
     async def close(self) -> None:
         """Cierra el pool de conexiones"""
