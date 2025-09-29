@@ -2,7 +2,8 @@ from asyncpg import Pool, create_pool  # type: ignore
 from typing import Any, Optional, Dict, Union, Type, List
 from types import TracebackType
 from json import dumps
-from asyncio import run
+import asyncio
+import sys
 from . import Enviroment
 from .enums import EnviromentsEnum
 
@@ -43,7 +44,6 @@ class PostgressClient:
         if self.pool is not None:
             async with self.pool.acquire() as conn:  # type: ignore
                 rows = await conn.fetch(sql, *data)  # type: ignore
-                print(rows) # type: ignore
                 return [dict(row) for row in rows] if rows else []  # type: ignore
         return []
         
@@ -75,11 +75,26 @@ class PostgressClient:
         if self.pool is not None:
             await self.pool.close()  # type: ignore
             self.pool = None
-            
     def __del__(self):
-        if self.pool is not None:
-            print("pepe")
-            run(self.pool.close())
+        # Avoid running async operations during interpreter shutdown
+        if self.pool is None:
+            return
+        # If Python is finalizing, don't try to create or use event loop
+        if sys.is_finalizing():
+            return
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # schedule close; it will run on the running loop
+                loop.create_task(self.pool.close())
+            else:
+                # run until complete on the current thread loop
+                loop.run_until_complete(self.pool.close())
+        except Exception:
+            # best effort; don't raise in destructor
+            pass
+        finally:
+            self.pool = None
             
     async def __aenter__(self) -> 'PostgressClient':
         """Soporte para async context manager"""
