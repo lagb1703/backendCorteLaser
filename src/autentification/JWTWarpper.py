@@ -1,9 +1,6 @@
 from authlib.jose import jwt, JWTClaims
 from datetime import datetime, timezone, timedelta
 from typing import Any
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
 from enums import ExceptionsEnum
 
 class JWTWarpper:
@@ -38,3 +35,12 @@ class JWTWarpper:
         payload = jwt.decode(token, key) # type: ignore
         payload.validate() # type: ignore
         return payload
+    
+    def refresh(self, token: str | bytes, key: str | None = None, exp: timedelta | None = None)-> str | bytes:
+        if key is None and self.__key is not None:
+            key = self.__key
+        elif key is None:
+            raise ValueError(ExceptionsEnum.NO_KEY.value)
+        payload = jwt.decode(token, key) # type: ignore
+        return self.encode(payload, key, exp)
+        

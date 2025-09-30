@@ -4,8 +4,6 @@ from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from fastapi import Request, HTTPException
 from src.UserModule.dtos import User
-# from google.oauth2 import id_token
-# from google.auth.transport import requests
 
 class Segurity:
     
@@ -32,4 +30,7 @@ class Segurity:
         token_value: str = token.split("Bearer ")[1]
         user = self.__jwt.decode(token_value)
         request.scope["user"] = user
+        
+    def refreshToken(self, token: str | bytes) -> str | bytes:
+        return self.__jwt.refresh(token)
         
