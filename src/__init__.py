@@ -1,5 +1,6 @@
+from fastapi import APIRouter
 from src.autentification import router as AuthRouter
 
-print("pepe")
+routers = APIRouter(prefix="/api")
 
-routers = [AuthRouter]
+routers.include_router(AuthRouter)

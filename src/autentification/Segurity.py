@@ -1,5 +1,5 @@
 from .JWTWarpper import JWTWarpper
-from enums import ExceptionsEnum
+from src.autentification.enums import ExceptionsEnum
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from fastapi import Request, HTTPException
@@ -9,7 +9,6 @@ class Segurity:
     
     def __init__(self):
         e = Enviroment.getInstance()
-        print(e.get(EnviromentsEnum.JWT_KEY.value))
         self.__jwt = JWTWarpper(e.get(EnviromentsEnum.JWT_KEY.value))
         
     def validateToken(self, token: str | bytes)->bool:

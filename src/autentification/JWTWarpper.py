@@ -1,7 +1,7 @@
 from authlib.jose import jwt, JWTClaims
 from datetime import datetime, timezone, timedelta
 from typing import Any
-from enums import ExceptionsEnum
+from src.autentification.enums import ExceptionsEnum
 
 class JWTWarpper:
     

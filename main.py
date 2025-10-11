@@ -1,29 +1,33 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+from starlette.middleware.sessions import SessionMiddleware
+from src import routers
+from src.utils import Enviroment
+from src.utils.enums import EnviromentsEnum
 
-app = FastAPI(
-    title="API Corte Laser",
-    description="API para sistema de corte laser",
-    version="1.0.0"
+app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000", 
+    "http://localhost:3001",  
+]
+
+e = Enviroment.getInstance()
+
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=e.get(EnviromentsEnum.JWT_KEY.value),
+    same_site="lax",
+    https_only=False
 )
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "API Corte Laser funcionando"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+app.include_router(routers)

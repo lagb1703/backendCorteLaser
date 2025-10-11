@@ -1,5 +1,5 @@
 from src.utils.PostgressClient import PostgressClient
-from UserModule.dtos import User
+from src.UserModule.dtos import User
 
 class UserService:
     

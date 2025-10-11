@@ -1,11 +1,14 @@
-from autentification.Segurity import Segurity
+from typing import Any
+from src.autentification.Segurity import Segurity
 from src.UserModule.UserService import UserService
-from src.UserModule.dtos import User
+# from src.UserModule.dtos import User
 from fastapi import HTTPException
+from starlette.requests import Request
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
-from google.oauth2 import id_token
-from google.auth.transport import requests
+from authlib.integrations.starlette_client import OAuth  # type: ignore
+import ssl
+import os
 
 class AuthService:
     
@@ -22,26 +25,47 @@ class AuthService:
         e = Enviroment.getInstance()
         self.__segurity = Segurity()
         self.__userService = UserService()
-        self.__googleClient: str = e.get(EnviromentsEnum.GOOGLE_CLIENT.value)
+        
+        # Configuración SSL para desarrollo - DESHABILITAR VERIFICACIÓN
+        # IMPORTANTE: Solo para desarrollo, NO usar en producción
+        os.environ['PYTHONHTTPSVERIFY'] = '0'
+        ssl._create_default_https_context = ssl._create_unverified_context  # type: ignore
+        
+        self.__oauth = OAuth()
+        self.__oauth.register( # type: ignore
+            name="google",
+            client_id=e.get(EnviromentsEnum.GOOGLE_CLIENT_ID.value),
+            client_secret=e.get(EnviromentsEnum.GOOGLE_CLIENT_SECRET.value),
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={
+                "scope": "openid email profile"
+            }
+        )
+        
     def login(self, userName: str, password: str)->bool:
         return self.__userService.login(userName, password)
     
-    def loginGoogle(self, googleToken: str)->str | bytes:
-        user_info = id_token.verify_oauth2_token(googleToken, requests.Request(), self.__googleClient) # type: ignore
-        if not user_info:
-            raise HTTPException(status_code=401, detail="Token de Google inválido")
-        print(user_info) # type: ignore
-        user = User(
-            names=user_info["names"],  # type: ignore
-            lastNames=user_info["lastNames"], # type: ignore
-            email=user_info["email"], # type: ignore
-            address=user_info["address"], # type: ignore
-            password=user_info["password"], # type: ignore
-            phone=user_info["phone"], # type: ignore
-            isAdmin=False
-        )
-        token = self.__segurity.getToken(user)
-        return token
+    async def loginGoogle(self, request: Request)-> Any:
+        redirect_uri = request.url_for("auth_google_callback")
+        return await self.__oauth.google.authorize_redirect(request, redirect_uri) # type: ignore
+    
+    async def googleCallBack(self, request: Request)-> str | bytes:
+        try:
+            token = await self.__oauth.google.authorize_access_token(request) # type: ignore
+            user_info = token.get("userinfo") # type: ignore
+            
+            if not user_info:
+                raise HTTPException(status_code=400, detail="No se pudo obtener la información del usuario")
+            return f"pepe el mago"
+            
+        except ssl.SSLError as ssl_error:
+            print(f"❌ Error SSL específico: {ssl_error}")
+            raise HTTPException(status_code=400, detail=f"Error de certificado SSL. Verifica la configuración de red: {ssl_error}")
+        except HTTPException:
+            # Re-lanzar HTTPExceptions tal como están
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error autenticando con Google: {e}")
         
     def refreshToken(self, token: str) -> str | bytes:
         return self.__segurity.refreshToken(token)
