@@ -7,6 +7,14 @@ from src.UserModule.dtos import UserToken
 
 class Segurity:
     
+    __instance: 'Segurity | None' = None
+    
+    @staticmethod
+    def getInstance()->'Segurity':
+        if Segurity.__instance is None:
+            Segurity.__instance = Segurity()
+        return Segurity.__instance
+    
     def __init__(self):
         e = Enviroment.getInstance()
         self.__jwt = JWTWarpper(e.get(EnviromentsEnum.JWT_KEY.value))

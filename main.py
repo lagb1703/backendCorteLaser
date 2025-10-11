@@ -4,8 +4,39 @@ from starlette.middleware.sessions import SessionMiddleware
 from src import routers
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
+from fastapi.openapi.utils import get_openapi
 
-app = FastAPI()
+app = FastAPI(
+    title="Backend Corte Laser API",
+    description="API para el sistema de corte laser",
+    version="1.0.0",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    }
+)
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="Backend Corte Laser API",
+        version="1.0.0",
+        description="API para el sistema de corte laser",
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Ingresa tu token JWT"
+        }
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 origins = [
     "http://localhost",

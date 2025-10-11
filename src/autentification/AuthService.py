@@ -23,7 +23,6 @@ class AuthService:
         e = Enviroment.getInstance()
         self.__segurity = Segurity()
         self.__userService = UserService.getInstance()
-        
         self.__oauth = OAuth()
         self.__oauth.register( # type: ignore
             name="google",
