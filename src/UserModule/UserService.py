@@ -17,8 +17,7 @@ class UserService:
     def login(self, userName: str, password: str)->UserToken:
         return UserToken(
             id=0, 
-            email="ejemplo@gmail.com", 
-            password="no me la se"
+            email="ejemplo@gmail.com"
         )
     
     def register(self, user: User):
