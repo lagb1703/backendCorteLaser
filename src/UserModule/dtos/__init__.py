@@ -9,6 +9,3 @@ class User(BaseModel):
     phone: str
     isAdmin: bool = False
     
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str

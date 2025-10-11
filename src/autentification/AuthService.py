@@ -8,7 +8,6 @@ from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from authlib.integrations.starlette_client import OAuth  # type: ignore
 import ssl
-import os
 
 class AuthService:
     
@@ -25,11 +24,6 @@ class AuthService:
         e = Enviroment.getInstance()
         self.__segurity = Segurity()
         self.__userService = UserService.getInstance()
-        
-        # Configuración SSL para desarrollo - DESHABILITAR VERIFICACIÓN
-        # IMPORTANTE: Solo para desarrollo, NO usar en producción
-        os.environ['PYTHONHTTPSVERIFY'] = '0'
-        ssl._create_default_https_context = ssl._create_unverified_context  # type: ignore
         
         self.__oauth = OAuth()
         self.__oauth.register( # type: ignore
