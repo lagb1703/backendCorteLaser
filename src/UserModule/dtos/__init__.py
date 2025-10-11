@@ -8,3 +8,7 @@ class User(BaseModel):
     password: str
     phone: str
     isAdmin: bool = False
+    
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
