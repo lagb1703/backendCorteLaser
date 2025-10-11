@@ -3,6 +3,14 @@ from src.UserModule.dtos import User
 
 class UserService:
     
+    __instance: 'UserService | None' = None
+    
+    @staticmethod
+    def getInstance():
+        if UserService.__instance == None:
+            UserService.__instance = UserService()
+        return UserService.__instance
+    
     def __init__(self):
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         

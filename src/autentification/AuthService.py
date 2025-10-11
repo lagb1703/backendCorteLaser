@@ -24,7 +24,7 @@ class AuthService:
     def __init__(self):
         e = Enviroment.getInstance()
         self.__segurity = Segurity()
-        self.__userService = UserService()
+        self.__userService = UserService.getInstance()
         
         # Configuración SSL para desarrollo - DESHABILITAR VERIFICACIÓN
         # IMPORTANTE: Solo para desarrollo, NO usar en producción
