@@ -3,7 +3,7 @@ from src.autentification.enums import ExceptionsEnum
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from fastapi import Request, HTTPException
-from src.UserModule.dtos import User
+from src.UserModule.dtos import UserToken
 
 class Segurity:
     
@@ -18,7 +18,7 @@ class Segurity:
         except:
             return False
         
-    def getToken(self, user: User)-> str | bytes:
+    def getToken(self, user: UserToken)-> str | bytes:
         payload = user.__dict__
         return self.__jwt.encode(payload)
     

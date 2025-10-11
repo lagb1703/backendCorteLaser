@@ -1,7 +1,6 @@
 from typing import Any
 from src.autentification.Segurity import Segurity
 from src.UserModule.UserService import UserService
-# from src.UserModule.dtos import User
 from fastapi import HTTPException
 from starlette.requests import Request
 from src.utils import Enviroment
@@ -36,8 +35,9 @@ class AuthService:
             }
         )
         
-    def login(self, userName: str, password: str)->bool:
-        return self.__userService.login(userName, password)
+    def login(self, userName: str, password: str)->str | bytes:
+        user = self.__userService.login(userName, password)
+        return self.__segurity.getToken(user)
     
     async def loginGoogle(self, request: Request)-> Any:
         redirect_uri = request.url_for("auth_google_callback")

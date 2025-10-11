@@ -9,3 +9,7 @@ class User(BaseModel):
     phone: str
     isAdmin: bool = False
     
+class UserToken(BaseModel):
+    id: int
+    email: str
+    
