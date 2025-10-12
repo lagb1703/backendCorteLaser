@@ -1,12 +1,21 @@
-from typing import Any
+from __future__ import annotations
+from typing import Any, TYPE_CHECKING
 from src.autentification.Segurity import Segurity
-from src.UserModule.UserService import UserService
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from starlette.requests import Request
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from authlib.integrations.starlette_client import OAuth  # type: ignore
 import ssl
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+if TYPE_CHECKING:
+    from src.UserModule.dtos import UserToken
+
+security = HTTPBearer(
+    scheme_name="BearerAuth",
+    description="Ingresa tu token JWT sin el prefijo 'Bearer'"
+)
 
 class AuthService:
     
@@ -17,9 +26,9 @@ class AuthService:
         if AuthService.__instance is None:
             AuthService.__instance = AuthService()
         return AuthService.__instance
-        
     
     def __init__(self):
+        from src.UserModule.UserService import UserService
         e = Enviroment.getInstance()
         self.__segurity = Segurity()
         self.__userService = UserService.getInstance()
@@ -46,7 +55,6 @@ class AuthService:
         try:
             token = await self.__oauth.google.authorize_access_token(request) # type: ignore
             user_info = token.get("userinfo") # type: ignore
-            
             if not user_info:
                 raise HTTPException(status_code=400, detail="No se pudo obtener la información del usuario")
             return f"pepe el mago"
@@ -54,10 +62,21 @@ class AuthService:
         except ssl.SSLError as ssl_error:
             raise HTTPException(status_code=400, detail=f"Error de certificado SSL. Verifica la configuración de red: {ssl_error}")
         except HTTPException:
-            # Re-lanzar HTTPExceptions tal como están
             raise
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error autenticando con Google: {e}")
+        
+    def setUser(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
+        print("pepe")
+        token = credentials.credentials
+        return self.__segurity.setUser(token)
+    
+    def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
+        token = credentials.credentials
+        userToken = self.__segurity.setUser(token)
+        user = self.__userService.getUSerById(userToken.id)
+        userToken.isAdmin = user.isAdmin
+        return userToken
         
     def refreshToken(self, token: str) -> str | bytes:
         return self.__segurity.refreshToken(token)

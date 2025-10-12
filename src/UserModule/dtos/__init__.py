@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 class User(BaseModel):
     names: str
@@ -12,4 +13,5 @@ class User(BaseModel):
 class UserToken(BaseModel):
     id: int
     email: str
+    isAdmin: Optional[bool] = False
     

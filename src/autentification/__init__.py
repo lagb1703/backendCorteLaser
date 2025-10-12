@@ -1,19 +1,21 @@
 from fastapi import APIRouter, Request
-from src.autentification.AuthService import AuthService
 from src.autentification.dtos import UserLogin
-
-auth = AuthService.getInstance()
+from src.autentification.AuthService import AuthService
 
 router = APIRouter(prefix="/auth", tags=["seguridad"])
 
+authService = AuthService.getInstance()
+
 @router.post("/login")
 async def login(userLogin: UserLogin):
-    return auth.login(userLogin.email, userLogin.password)
+    return authService.login(userLogin.email, userLogin.password)
+
 
 @router.get("/login/google")
 async def loginGoogle(request: Request):
-    return await auth.loginGoogle(request)
+    return await authService.loginGoogle(request)
+
 
 @router.get("/login/google/callback")
 async def auth_google_callback(request: Request):
-    return await auth.googleCallBack(request)
+    return await authService.googleCallBack(request)

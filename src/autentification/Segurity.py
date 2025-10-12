@@ -1,19 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-
 from .JWTWarpper import JWTWarpper
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
-from fastapi import Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 if TYPE_CHECKING:
     from src.UserModule.dtos import UserToken
-
-security = HTTPBearer(
-    scheme_name="BearerAuth",
-    description="Ingresa tu token JWT sin el prefijo 'Bearer'"
-)
 
 class Segurity:
     
@@ -42,11 +34,12 @@ class Segurity:
         payload = user.__dict__
         return self.__jwt.encode(payload)
     
-    def setUser(self, credentials: HTTPAuthorizationCredentials = Depends(security))->UserToken:
-        token = credentials.credentials
+    def setUser(self, token: str | bytes)->'UserToken':
         user = self.__jwt.decode(token)
-        print(user)
-        return self.__tokenDto(id=user["id"], email=user["email"])
+        return self.__tokenDto(
+            id=user["id"],
+            email=user["email"],
+        )
         
     def refreshToken(self, token: str | bytes) -> str | bytes:
         return self.__jwt.refresh(token)

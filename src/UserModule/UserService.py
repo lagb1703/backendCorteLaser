@@ -26,5 +26,13 @@ class UserService:
     def getAllUser(self):
         pass
     
-    def getUSerById(self, id: str | int):
-        pass
+    def getUSerById(self, id: str | int)->User:
+        return User(
+            names="pepe el mago",
+            lastNames="no se",
+            email="constantemente@gmail.com",
+            password="contraseña",
+            address="aca",
+            phone="3017222568",
+            isAdmin=True
+        )
