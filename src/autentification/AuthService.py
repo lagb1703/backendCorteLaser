@@ -76,6 +76,8 @@ class AuthService:
         userToken = self.__segurity.setUser(token)
         user = self.__userService.getUSerById(userToken.id)
         userToken.isAdmin = user.isAdmin
+        if not userToken.isAdmin:
+            raise HTTPException(status_code=403, detail="el usuario no es administrador")
         return userToken
         
     def refreshToken(self, token: str) -> str | bytes:

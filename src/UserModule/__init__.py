@@ -12,6 +12,10 @@ userService = UserService.getInstance()
 authService = AuthService.getInstance()
 
 
+@router.get("/")
+async def getUser(user: Annotated[UserToken, Depends(authService.setUser)])->UserToken:
+    return user
+
 @router.post("/register")
 async def register(user: User):
     return userService.register(user)
@@ -25,9 +29,9 @@ async def getAllUser():
     return userService.getAllUser()
 
 
-@router.get("/")
-async def getUserById(user: Annotated[UserToken, Depends(authService.setUser)]):
+@router.get("/userId/")
+async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.setUserAdmin)]):
     """
     Obtiene un usuario por ID. Requiere autenticación.
     """
-    return userService.getUSerById(user.id)
+    return userService.getUSerById(userId)
