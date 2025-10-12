@@ -52,7 +52,6 @@ class AuthService:
             return f"pepe el mago"
             
         except ssl.SSLError as ssl_error:
-            print(f"❌ Error SSL específico: {ssl_error}")
             raise HTTPException(status_code=400, detail=f"Error de certificado SSL. Verifica la configuración de red: {ssl_error}")
         except HTTPException:
             # Re-lanzar HTTPExceptions tal como están
