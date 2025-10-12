@@ -28,5 +28,4 @@ async def getUserById(user: Annotated[UserToken, Depends(segurity.setUser)]):
     """
     Obtiene un usuario por ID. Requiere autenticación.
     """
-    print(user)
     return userService.getUSerById(user.id)

@@ -2,13 +2,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .JWTWarpper import JWTWarpper
-from src.autentification.enums import ExceptionsEnum
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
-from fastapi import Request, HTTPException
+from fastapi import Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 if TYPE_CHECKING:
     from src.UserModule.dtos import UserToken
+
+security = HTTPBearer(
+    scheme_name="BearerAuth",
+    description="Ingresa tu token JWT sin el prefijo 'Bearer'"
+)
 
 class Segurity:
     
@@ -21,8 +26,10 @@ class Segurity:
         return Segurity.__instance
     
     def __init__(self):
+        from src.UserModule.dtos import UserToken
         e = Enviroment.getInstance()
         self.__jwt = JWTWarpper(e.get(EnviromentsEnum.JWT_KEY.value))
+        self.__tokenDto = UserToken
         
     def validateToken(self, token: str | bytes)->bool:
         try:
@@ -35,14 +42,11 @@ class Segurity:
         payload = user.__dict__
         return self.__jwt.encode(payload)
     
-    def setUser(self, request: Request)->UserToken:
-        token = request.scope.get("authorization")
-        if token is None or not isinstance(token, str):
-            raise HTTPException(401, ExceptionsEnum.NO_TOKEN.value)
-        token_value: str = token.split("Bearer ")[1]
-        user = self.__jwt.decode(token_value)
-        request.scope["user"] = user
-        return UserToken(id=user["id"], email=user["email"])
+    def setUser(self, credentials: HTTPAuthorizationCredentials = Depends(security))->UserToken:
+        token = credentials.credentials
+        user = self.__jwt.decode(token)
+        print(user)
+        return self.__tokenDto(id=user["id"], email=user["email"])
         
     def refreshToken(self, token: str | bytes) -> str | bytes:
         return self.__jwt.refresh(token)
