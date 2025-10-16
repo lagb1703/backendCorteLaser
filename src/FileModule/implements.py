@@ -3,7 +3,7 @@ from src.FileModule.geometriesAdapter import GeometriesAdapter
 from io import StringIO, BytesIO
 from shapely import Polygon
 from typing import List
-import geopandas as gpd
+import geopandas as gpd # type: ignore
 import matplotlib.pyplot as plt
 from typing import Tuple
 from ezdxf.filemanagement import read # type: ignore
