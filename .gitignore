@@ -3,6 +3,7 @@
 
 ### Mio ###
 credentials/
+*.dxf
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

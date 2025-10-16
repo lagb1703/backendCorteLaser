@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Any
+from typing import Tuple
 
 class GeometriesAnaliser(ABC):
     
@@ -8,7 +8,7 @@ class GeometriesAnaliser(ABC):
         pass
     
     @abstractmethod
-    def getMinimunRectangle(self)->Tuple[int, ...]:
+    def getMinimunRectangle(self)->Tuple[float, float, float, float]:
         pass
     
     @abstractmethod
@@ -16,5 +16,5 @@ class GeometriesAnaliser(ABC):
         pass
     
     @abstractmethod
-    def createImage(self)->Any:
+    def createImage(self)->bytes:
         pass
