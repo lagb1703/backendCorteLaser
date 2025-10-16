@@ -1,10 +1,13 @@
-from io import BytesIO
-from shapely import Polygon
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
+from src.FileModule.geometriesAdapter import GeometriesAdapter
+from io import StringIO, BytesIO
+from shapely import Polygon
 from typing import List
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from typing import Tuple
+from ezdxf.filemanagement import read # type: ignore
+from ezdxf_shapely import convert_all, polygonize # type: ignore
 
 class ShapelyAnalizer(GeometriesAnaliser):
     
@@ -27,7 +30,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
             length = getattr(inter, 'length', 0.0) # type: ignore
             if length > 1e-8:
                 overlaps.append((i, j))
-        return validGeometry
+        return validGeometry and len(overlaps) == 0
     
     def getMinimunRectangle(self)->Tuple[float, float, float, float]:
         union = self.__geometries.unary_union # type: ignore
@@ -50,3 +53,12 @@ class ShapelyAnalizer(GeometriesAnaliser):
         image_bytes = buf.getvalue()
         buf.close()
         return image_bytes
+    
+class DxfAdapter(GeometriesAdapter[Polygon]):
+    
+    def makeGeometries(self, data: bytes)-> List[Polygon]:
+        buf = StringIO(data.decode("utf-8"))
+        doc = read(buf)
+        msp = doc.modelspace()
+        p = convert_all(msp)
+        return polygonize(p)
