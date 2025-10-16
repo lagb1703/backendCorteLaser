@@ -1,12 +1,13 @@
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
 from src.FileModule.geometriesAdapter import GeometriesAdapter
-from io import StringIO, BytesIO
-from shapely import Polygon
+from io import StringIO, BytesIO, TextIOWrapper
+from shapely import Polygon, touches # type: ignore
 from typing import List
-import geopandas as gpd # type: ignore
+import geopandas as gpd
 import matplotlib.pyplot as plt
 from typing import Tuple
 from ezdxf.filemanagement import read # type: ignore
+from ezdxf.lldxf.const import DXFStructureError # type: ignore
 from ezdxf_shapely import convert_all, polygonize # type: ignore
 
 class ShapelyAnalizer(GeometriesAnaliser):
@@ -26,9 +27,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
                 continue
             b1 = gdf.loc[i, 'geometry'].boundary # type: ignore
             b2 = gdf.loc[j, 'geometry'].boundary # type: ignore
-            inter = b1.intersection(b2) # type: ignore
-            length = getattr(inter, 'length', 0.0) # type: ignore
-            if length > 1e-8:
+            if touches(b1, b2): # type: ignore
                 overlaps.append((i, j))
         return validGeometry and len(overlaps) == 0
     
@@ -57,8 +56,28 @@ class ShapelyAnalizer(GeometriesAnaliser):
 class DxfAdapter(GeometriesAdapter[Polygon]):
     
     def makeGeometries(self, data: bytes)-> List[Polygon]:
-        buf = StringIO(data.decode("utf-8"))
-        doc = read(buf)
+        buf = None
+        try:
+            buf = TextIOWrapper(BytesIO(data), encoding='latin-1')
+            doc = read(buf)
+        except DXFStructureError:
+            try:
+                if buf is not None:
+                    buf.close()
+                buf = StringIO(data.decode("utf-8", errors="replace"))
+                doc = read(buf)
+            except Exception as e:
+                raise ValueError(f"Failed to parse DXF data: {e}") from e
+        finally:
+            if buf is not None:
+                try:
+                    buf.detach()
+                except Exception:
+                    try:
+                        buf.close()
+                    except Exception:
+                        pass
+
         msp = doc.modelspace()
         p = convert_all(msp)
-        return polygonize(p)
+        return list(polygonize(p))
