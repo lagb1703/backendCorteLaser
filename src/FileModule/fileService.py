@@ -29,11 +29,8 @@ class FileService:
         if file.filename is None:
             raise HTTPException(400, "falta la extención del archivo")
         file_bytes = await file.read()
+        
         a = self.__creator.createGeometry(file.filename.split(".")[1], file_bytes)
-        print(a.checkGeometries())
-        print(a.getMinimunRectangle())
-        print(a.getPerimeter())
-        data = a.createImage()
         # data is expected to be bytes (PNG). Wrap in BytesIO for streaming.
         # buf = BytesIO(data)
         # headers = {
