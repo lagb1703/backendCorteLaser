@@ -18,3 +18,7 @@ class GeometriesAnaliser(ABC):
     @abstractmethod
     def createImage(self)->bytes:
         pass
+    
+    @abstractmethod
+    def save(self)->bytes:
+        pass

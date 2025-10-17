@@ -1,7 +1,7 @@
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from io import StringIO, BytesIO, TextIOWrapper
-from shapely import Polygon, touches # type: ignore
+from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection # type: ignore
 from typing import List
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -53,6 +53,11 @@ class ShapelyAnalizer(GeometriesAnaliser):
         buf.close()
         return image_bytes
     
+    def save(self)->bytes:
+        geometries_list = self.__geometries.tolist()
+        geom_collection = GeometryCollection(geometries_list)
+        return wkb.dumps(geom_collection) # type: ignore
+    
 class DxfAdapter(GeometriesAdapter[Polygon]):
     
     def makeGeometries(self, data: bytes)-> List[Polygon]:
@@ -81,3 +86,20 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
         msp = doc.modelspace()
         p = convert_all(msp)
         return list(polygonize(p))
+
+class WKBAdapter(GeometriesAdapter[Polygon]):
+    
+    def makeGeometries(self, data: bytes)-> List[Polygon]:
+        try:
+            geom = wkb.loads(data)
+            if isinstance(geom, Polygon):
+                return [geom]
+            elif isinstance(geom, MultiPolygon):
+                return list(geom.geoms)
+            elif isinstance(geom, GeometryCollection):
+                polys = [g for g in geom.geoms if isinstance(g, Polygon)] # type: ignore
+                return polys
+            else:
+                raise ValueError("WKB geometry no es un Polígono/Multipolígono compatible")
+        except Exception as e2:
+            raise ValueError(f"No se pudo decodificar WKB: {e2}")

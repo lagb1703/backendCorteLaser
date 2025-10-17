@@ -1,6 +1,6 @@
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
-from src.FileModule.implements import ShapelyAnalizer, DxfAdapter
+from src.FileModule.implements import ShapelyAnalizer, DxfAdapter, WKBAdapter
 from typing import Dict, Any
 
 class GeometryAnaliserCreator:
@@ -9,7 +9,8 @@ class GeometryAnaliserCreator:
     
     def __init__(self):
         self.__filesToGeometries: Dict[str, GeometriesAdapter[Any]] = {
-            "dxf": DxfAdapter()
+            "dxf": DxfAdapter(),
+            "wkb": WKBAdapter() 
         }
         
     def createGeometry(self, extention: str, data: bytes)->GeometriesAnaliser:
