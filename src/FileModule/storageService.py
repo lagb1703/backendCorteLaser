@@ -13,7 +13,7 @@ class StorageService:
     def __init__(self):
         self.__storage = StorageWapper()
         
-    def upload(self, data: bytes, name: str, folder: str, content_type: str | None = None)->str:
+    def upload(self, data: bytes, name: str, folder: str, content_type: str | None = None)->None:
         self.__storage.upload(data, f"{folder}/{name}", content_type=content_type)
     def download(self, name: str, folder: str)->bytes:
         return self.__storage.download(f"{folder}/{name}")
