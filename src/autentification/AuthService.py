@@ -3,9 +3,11 @@ from typing import Any, TYPE_CHECKING
 from src.autentification.Segurity import Segurity
 from fastapi import HTTPException, Depends
 from starlette.requests import Request
+from src.autentification.enums import ExceptionsEnum
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from authlib.integrations.starlette_client import OAuth  # type: ignore
+from authlib.jose.errors import ExpiredTokenError
 import ssl
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -53,23 +55,30 @@ class AuthService:
     
     async def googleCallBack(self, request: Request)-> str | bytes:
         try:
-            token = await self.__oauth.google.authorize_access_token(request) # type: ignore
-            user_info = token.get("userinfo") # type: ignore
+            token = await self.__oauth.google.authorize_access_token(request)  # type: ignore
+            user_info = token.get("userinfo")  # type: ignore
             if not user_info:
-                raise HTTPException(status_code=400, detail="No se pudo obtener la información del usuario")
-            return f"pepe el mago"
-            
+                raise HTTPException(status_code=400, detail=ExceptionsEnum.NO_TOKEN.value)
+            email: Any = user_info.get("email") # type: ignore
+            if not email or not isinstance(email, str):
+                raise HTTPException(status_code=400, detail=ExceptionsEnum.NO_TOKEN.value)
+            from src.UserModule.dtos import UserToken
+            t: UserToken = UserToken(id=0, email=email)
+            return self.__segurity.getToken(t)
+
         except ssl.SSLError as ssl_error:
-            raise HTTPException(status_code=400, detail=f"Error de certificado SSL. Verifica la configuración de red: {ssl_error}")
+            raise HTTPException(status_code=400, detail=ExceptionsEnum.SSL_ERROR.value.replace(":error", str(ssl_error)))
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error autenticando con Google: {e}")
+            raise HTTPException(status_code=400, detail=ExceptionsEnum.GOOGLE_AUTH_ERROR.value.replace(":Error", str(e)))
         
     def setUser(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
-        print("pepe")
-        token = credentials.credentials
-        return self.__segurity.setUser(token)
+        try:
+            token = credentials.credentials
+            return self.__segurity.setUser(token)
+        except ExpiredTokenError as _:
+            raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
     
     def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
         token = credentials.credentials
@@ -77,7 +86,7 @@ class AuthService:
         user = self.__userService.getUSerById(userToken.id)
         userToken.isAdmin = user.isAdmin
         if not userToken.isAdmin:
-            raise HTTPException(status_code=403, detail="el usuario no es administrador")
+            raise HTTPException(status_code=403, detail=ExceptionsEnum.NO_ROLL.value)
         return userToken
         
     def refreshToken(self, token: str) -> str | bytes:
