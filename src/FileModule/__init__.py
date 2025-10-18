@@ -13,3 +13,8 @@ fileService: FileService = FileService.getInstance()
 async def saveFile(file: UploadFile):
     u = UserToken(id=0, email="p@gmail.com", isAdmin=False)
     return await fileService.saveFile(file, u)
+
+@router.get("/donwload")
+async def getFile(id: str):
+    u = UserToken(id=0, email="p@gmail.com", isAdmin=False)
+    return await fileService.getFile(id, u)
