@@ -2,6 +2,7 @@ import datetime
 from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator
 from src.FileModule.storageService import StorageService
 from src.FileModule.enums import ExceptionsEnum, FolderName
+from src.FileModule.costCalculator import CostCalculator
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -74,4 +75,12 @@ class FileService:
         return []
     
     async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->float:
-        return 0.0
+        cost = CostCalculator()
+        fileInfo = await self.__getFileInfo(id, user)
+        onlyName:str = fileInfo.name.split('.')[0]
+        fileWBT:bytes = self.__storage.download(f"{onlyName}.wkb", FolderName.WKB.value)
+        geo = self.__creator.createGeometry("wkb", fileWBT)
+        perimeter = geo.getPerimeter()
+        minX, minY, maxX, maxY = geo.getMinimunRectangle()
+        area = (maxX - minX)*(maxY-minY)
+        return cost.getPrice(1000, 100, area, perimeter)

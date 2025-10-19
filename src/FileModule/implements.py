@@ -1,11 +1,14 @@
+from fastapi import HTTPException
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
 from src.FileModule.geometriesAdapter import GeometriesAdapter
+from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
 from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection # type: ignore
-from typing import List
+from typing import Dict, List
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from typing import Tuple
+from shapely.affinity import scale
 from ezdxf.filemanagement import read # type: ignore
 from ezdxf.lldxf.const import DXFStructureError # type: ignore
 from ezdxf_shapely import convert_all, polygonize # type: ignore
@@ -60,6 +63,30 @@ class ShapelyAnalizer(GeometriesAnaliser):
     
 class DxfAdapter(GeometriesAdapter[Polygon]):
     
+    unitsToMeters:Dict[int, float] = {
+            0: 0,  # Unidades sin definir
+            1: 0.0254,  # Pulgadas a metros
+            2: 0.3048,  # Pies a metros
+            3: 1609.34,  # Millas a metros
+            4: 0.001,  # Milímetros a metros
+            5: 0.01,  # Centímetros a metros
+            6: 1.0,  # Metros
+            7: 1000.0,  # Kilómetros a metros
+            8: 2.54e-08,  # Micro-pulgadas a metros
+            9: 2.54e-05,  # Mils a metros
+            10: 0.9144,  # Yardas a metros
+            11: 1e-10,  # Ángstroms a metros
+            12: 1e-09,  # Nanómetros a metros
+            13: 1e-06,  # Micrones a metros
+            14: 0.1,  # Decímetros a metros
+            15: 10.0,  # Decámetros a metros
+            16: 100.0,  # Hectómetros a metros
+            17: 1e+09,  # Gigámetros a metros
+            18: 1.495978707e+11,  # Unidades astronómicas a metros
+            19: 9.461e+15,  # Años luz a metros
+            20: 3.086e+16,  # Parsecs a metros
+    }
+    
     def makeGeometries(self, data: bytes)-> List[Polygon]:
         buf = None
         try:
@@ -85,7 +112,14 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
 
         msp = doc.modelspace()
         p = convert_all(msp)
-        return list(polygonize(p))
+        units = doc.units
+        if units == 0:
+            raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "falta de unidades de medida"))
+        convertFactor = DxfAdapter.unitsToMeters.get(units)
+        if convertFactor is None:
+            raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "unidad desconocida"))
+        polygons = list(polygonize(p))
+        return [scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0,0)) for poly in polygons]
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
     
