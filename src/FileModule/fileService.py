@@ -32,6 +32,8 @@ class FileService:
         return 0
     async def __deleteFileInfo(self, id: str | int) -> None:
         pass
+    async def __saveQuote(self, fileId: str | int, materialId: str, thicknessId: str)-> None:
+        pass
     
     async def saveFile(self, file: UploadFile, user: UserToken)->str | int:
         if file.filename is None:
@@ -83,4 +85,5 @@ class FileService:
         perimeter = geo.getPerimeter()
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
+        await self.__saveQuote(id, materialId, thicknessId)
         return cost.getPrice(1000, 100, area, perimeter)
