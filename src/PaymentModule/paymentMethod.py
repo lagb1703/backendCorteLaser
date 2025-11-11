@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from src.PaymentModule.dto import PaymentTypeResponse, PaymentType, WompiTokenizerType
+from src.PaymentModule.dto import PaymentTypeResponse, PaymentType#, WompiTokenizerType
 from abc import ABC, abstractmethod
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
@@ -80,16 +80,16 @@ class PaymentMethod(ABC):
         pass
     
     @abstractmethod
-    async def tokenizer(self, paymentInfo: WompiTokenizerType)->str:
+    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
         pass
     
 class CardMethod(PaymentMethod):
 
-    async def tokenizer(self, paymentInfo: WompiTokenizerType)->str:
+    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
         url = f"{self._link}tokens/cards"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                resp = await client.post(url=url, json=paymentInfo.__dict__, headers={
+                resp = await client.post(url=url, json=paymentInfo, headers={
                     "Authorization":f"Bearer {self._pubKey}"
                 })
                 resp.raise_for_status()
@@ -110,7 +110,7 @@ class CardMethod(PaymentMethod):
     async def generatePayment(self, payment: PaymentType, userEmail: str)->PaymentTypeResponse:
         if payment.card is None:
             raise HTTPException(400, ExceptionsEnum.NO_CARD_INFO.value)
-        token = await self.tokenizer(payment.card)
+        token = await self.tokenizer(payment.card.__dict__)
         sourcePayload:Dict[str, str | int] = {
             "type":payment.payment_method.type,
             "token":token,
@@ -118,7 +118,6 @@ class CardMethod(PaymentMethod):
             "customer_email": userEmail
         }
         paymentSourceId: int = await self._getPaymentSourceId(sourcePayload)
-        print(paymentSourceId)
         payload: Dict[str, Any] = {
             "acceptance_token":payment.acceptance_token,
             "amount_in_cents": payment.amount_in_cents,
@@ -137,12 +136,12 @@ class CardMethod(PaymentMethod):
     
 class NequiMethod(PaymentMethod):
     
-    async def tokenizer(self, paymentInfo: WompiTokenizerType)->str:
+    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
         url = f"{self._link}tokens/nequi"
         urlGet = f"{self._link}tokens/nequi/"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                resp = await client.post(url=url, json=paymentInfo.__dict__, headers={
+                resp = await client.post(url=url, json=paymentInfo, headers={
                     "Authorization":f"Bearer {self._pubKey}"
                 })
                 resp.raise_for_status()
@@ -171,10 +170,28 @@ class NequiMethod(PaymentMethod):
         pm = payment.payment_method
         if not getattr(pm, "phone_number", None):
             raise HTTPException(400, ExceptionsEnum.NO_NEQUI_PHONE_NUMBER.value)
-        payload = payment.model_dump()
-        pm_dict: Dict[str, Any] = payload.get("payment_method") or {}
-        pm_dict["type"] = "NEQUI"
-        pm_dict["phone_number"] = pm_dict.get("phone_number")
-        payload["payment_method"] = pm_dict
-        payload.pop("card", None)
+        token = await self.tokenizer({
+            "phone_number": pm.phone_number
+        })
+        sourcePayload:Dict[str, str | int] = {
+            "type":payment.payment_method.type,
+            "token":token,
+            "acceptance_token":payment.acceptance_token,
+            "customer_email": userEmail
+        }
+        paymentSourceId: int = await self._getPaymentSourceId(sourcePayload)
+        payload: Dict[str, Any] = {
+            "acceptance_token":payment.acceptance_token,
+            "amount_in_cents": payment.amount_in_cents,
+            "currency": "COP",
+            "customer_email": userEmail,
+            "payment_method": {
+                "type": payment.payment_method.type,
+                "token": token,
+                "installments": payment.payment_method.installments
+            },
+            "payment_source_id": paymentSourceId,
+            "redirect_url": "https://mitienda.com.co/pago/resultado",
+            "reference": payment.reference
+        }
         return await self._send(payload)
