@@ -5,7 +5,7 @@ from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
 import httpx
-from typing import Dict
+from typing import Dict, Any
 
 class WompiWapper:
     
@@ -49,5 +49,22 @@ class WompiWapper:
             raise 
         return await paymentMethod.generatePayment(payment, userEmail)
     
-    def verifyPayment(self, id: str)-> str:
-        return ""
+    async def verifyPayment(self, id: str)-> Dict[str, Any]:
+        url = f"{self.__link}transactions/{id}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                data = resp.json()
+                return data["data"]
+            except httpx.TimeoutException:
+                raise HTTPException(504, ExceptionsEnum.WOMPI_TIME_OUT.value)
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                raise HTTPException(502, ExceptionsEnum.WOMPI_BAD_STATUS.value.replace(":Error", str(status)))
+            except httpx.RequestError as e:
+                raise HTTPException(502, ExceptionsEnum.WOMPI_BAD_STATUS.value.replace(":Error", str(e)))
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(500, f"Error interno al obtener acceptance tokens: {str(e)}")

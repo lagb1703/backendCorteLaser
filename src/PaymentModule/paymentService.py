@@ -29,10 +29,11 @@ class PaymentService:
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         result = await self.__wompiWapper.makePayment(payment, user.email)
-        return "result.id"
+        return result.id
     
-    def verifyPayment(self, id: str)->str:
-        return ""
+    async def verifyPayment(self, id: str)->str:
+        result = await self.__wompiWapper.verifyPayment(id)
+        return result["status"]
     
     def untilNotGetPending(self, id: str)->str:
         return ""

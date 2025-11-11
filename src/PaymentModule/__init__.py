@@ -19,3 +19,7 @@ async def getAcceptanceTokens()->AcceptanceTokens:
 @router.post("/")
 async def makePayment(payment: PaymentType, u: Annotated[UserToken, Depends(authService.setUser)]):
     return await paymentService.makePayment(payment, u)
+
+@router.get("/")
+async def verifyPayment(id: str, u: Annotated[UserToken, Depends(authService.setUser)])->str:
+    return await paymentService.verifyPayment(id)
