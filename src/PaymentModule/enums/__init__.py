@@ -6,3 +6,6 @@ class ExceptionsEnum(Enum):
     NO_VALID_COLOMBIAN_PHONE_NUMBER="El numero de telefono no es valido"
     WOMPI_TIME_OUT="Bancolombia esta caido por el momento"
     WOMPI_BAD_STATUS="Bancolombia ha respondido con un error :Error"
+    
+class PaymentStatus(Enum):
+    APPROVED="APPROVED"

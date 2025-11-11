@@ -5,6 +5,7 @@ from src.PaymentModule.wompiWapper import WompiWapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
 from typing import List
 from fastapi import Response, Request
+from src.PaymentModule.enums import PaymentStatus
 
 class PaymentService:
     
@@ -35,8 +36,12 @@ class PaymentService:
         result = await self.__wompiWapper.verifyPayment(id)
         return result["status"]
     
-    def untilNotGetPending(self, id: str)->str:
-        return ""
+    async def untilNotGetPending(self, id: str)->str:
+        result:str = ""
+        i = 0
+        while result != PaymentStatus.APPROVED.value and i < 10:
+            result = await self.verifyPayment(id)
+        return result
     
     def getPayments(self, userId: str)->List[DbPaymentType]:
         return []

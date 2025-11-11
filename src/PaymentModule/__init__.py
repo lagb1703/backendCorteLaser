@@ -23,3 +23,7 @@ async def makePayment(payment: PaymentType, u: Annotated[UserToken, Depends(auth
 @router.get("/")
 async def verifyPayment(id: str, u: Annotated[UserToken, Depends(authService.setUser)])->str:
     return await paymentService.verifyPayment(id)
+
+@router.get("/verify")
+async def untilNotGetPending(id: str, u: Annotated[UserToken, Depends(authService.setUser)])->str:
+    return await paymentService.untilNotGetPending(id)
