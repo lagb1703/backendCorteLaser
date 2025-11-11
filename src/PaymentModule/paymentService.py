@@ -43,8 +43,11 @@ class PaymentService:
             result = await self.verifyPayment(id)
         return result
     
-    def getPayments(self, userId: str)->List[DbPaymentType]:
+    def getPayments(self, userId: int)->List[DbPaymentType]:
         return []
     
-    def webhook(self, request: Request, response: Response)->None:
-        pass
+    async def webhook(self, request: Request, response: Response)->None:
+        response.status_code = 200
+        body = await request.body()
+        print(body)
+        return

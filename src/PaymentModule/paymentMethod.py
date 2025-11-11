@@ -17,14 +17,12 @@ class PaymentMethod(ABC):
         
     async def _send(self, payload: Dict[str, Any])->PaymentTypeResponse:
         url = f"{self._link}transactions"
-        print(payload)
         async with httpx.AsyncClient(timeout=15.0) as client:
             try:
                 resp = await client.post(url=url, json=payload, headers={
                     "Authorization": f"Bearer {self._prKey}"
                 })
                 data = resp.json()
-                print(data)
                 resp.raise_for_status()
                 try:
                     result: PaymentTypeResponse = PaymentTypeResponse.model_validate(data["data"])
@@ -62,7 +60,6 @@ class PaymentMethod(ABC):
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 template = getattr(ExceptionsEnum, "WOMPI_BAD_STATUS", None)
-                print(e)
                 msg = template.value.replace(":Error", str(status)) if template is not None else f"WOMPI returned status {status}"
                 raise HTTPException(502, msg)
             except httpx.RequestError as e:

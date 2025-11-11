@@ -60,7 +60,7 @@ class AcceptanceTokens(BaseModel):
     presigned_acceptance: AcceptanceTokenType
     presigned_personal_data_auth: AcceptanceTokenType
     
-class DbPaymentType:
+class DbPaymentType(BaseModel):
     id: str | int
     p_id: str
     status: str
@@ -68,6 +68,6 @@ class DbPaymentType:
     created_at: str
     paymentMethod: str
     
-class PaymentMethodType:
+class PaymentMethodType(BaseModel):
     id: str | int
     name: str
