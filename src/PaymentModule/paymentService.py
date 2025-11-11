@@ -1,4 +1,5 @@
 from src.utils.PostgressClient import PostgressClient
+from src.UserModule.dtos import UserToken
 from src.FileModule.fileService import FileService
 from src.PaymentModule.wompiWapper import WompiWapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
@@ -26,8 +27,8 @@ class PaymentService:
     async def getAcceptanceTokens(self)->AcceptanceTokens:
         return await self.__wompiWapper.getAcceptanceTokens()
     
-    async def makePayment(self, payment: PaymentType)->str:
-        result = await self.__wompiWapper.makePayment(payment)
+    async def makePayment(self, payment: PaymentType, user: UserToken)->str:
+        result = await self.__wompiWapper.makePayment(payment, user.email)
         return "result.id"
     
     def verifyPayment(self, id: str)->str:

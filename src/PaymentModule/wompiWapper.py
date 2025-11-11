@@ -43,11 +43,11 @@ class WompiWapper:
             except Exception as e:
                 raise HTTPException(500, f"Error interno al obtener acceptance tokens: {str(e)}")
     
-    async def makePayment(self, payment: PaymentType)-> PaymentTypeResponse:
+    async def makePayment(self, payment: PaymentType, userEmail: str)-> PaymentTypeResponse:
         paymentMethod: PaymentMethod | None = self.__paymentMethods.get(payment.payment_method.type)
         if paymentMethod is None:
             raise 
-        return await paymentMethod.generatePayment(payment)
+        return await paymentMethod.generatePayment(payment, userEmail)
     
     def verifyPayment(self, id: str)-> str:
         return ""
