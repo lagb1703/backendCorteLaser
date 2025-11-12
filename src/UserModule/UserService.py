@@ -1,6 +1,6 @@
 from src.utils.PostgressClient import PostgressClient
 from src.UserModule.dtos import User, UserToken
-
+from typing import List
 class UserService:
     
     __instance: 'UserService | None' = None
@@ -14,19 +14,19 @@ class UserService:
     def __init__(self):
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         
-    def login(self, userName: str, password: str)->UserToken:
+    async def login(self, userName: str, password: str)->UserToken:
         return UserToken(
             id=0, 
             email="ejemplo@gmail.com"
         )
     
-    def register(self, user: User):
-        pass
+    async def register(self, user: User)->bool:
+        return True
     
-    def getAllUser(self):
-        pass
+    async def getAllUser(self)->List[User]:
+        return []
     
-    def getUSerById(self, id: str | int)->User:
+    async def getUSerById(self, id: str | int)->User:
         return User(
             names="pepe el mago",
             lastNames="no se",
@@ -36,3 +36,6 @@ class UserService:
             phone="3017222568",
             isAdmin=True
         )
+        
+    async def changeAddress(self, address: str, user: UserToken)->None:
+        return

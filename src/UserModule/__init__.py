@@ -35,3 +35,7 @@ async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.s
     Obtiene un usuario por ID. Requiere autenticación.
     """
     return userService.getUSerById(userId)
+
+@router.patch("/")
+async def changeAddress(user: Annotated[UserToken, Depends(authService.setUser)], address: str = "")->None:
+    return await userService.changeAddress(address, user)
