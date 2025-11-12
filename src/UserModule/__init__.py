@@ -29,7 +29,7 @@ async def getAllUser():
     return userService.getAllUser()
 
 
-@router.get("/userId/")
+@router.get("/userId")
 async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.setUserAdmin)]):
     """
     Obtiene un usuario por ID. Requiere autenticación.
