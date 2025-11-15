@@ -7,11 +7,11 @@ class User(BaseModel):
     email: EmailStr
     address: str
     password: str
-    phone: str
-    isAdmin: bool = False
+    phone: int
+    isAdmin: bool
     
 class UserToken(BaseModel):
     id: int
     email: str
-    isAdmin: Optional[bool] = False
+    isAdmin: Optional[bool]
     

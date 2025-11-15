@@ -18,15 +18,15 @@ async def getUser(user: Annotated[UserToken, Depends(authService.setUser)])->Use
 
 @router.post("/register")
 async def register(user: User):
-    return userService.register(user)
+    return await userService.register(user)
 
 
 @router.get("/all")
-async def getAllUser():
+async def getAllUser(_: Annotated[UserToken, Depends(authService.setUserAdmin)]):
     """
     Obtiene todos los usuarios. Requiere autenticación.
     """
-    return userService.getAllUser()
+    return await userService.getAllUser()
 
 
 @router.get("/userId")
@@ -34,7 +34,7 @@ async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.s
     """
     Obtiene un usuario por ID. Requiere autenticación.
     """
-    return userService.getUSerById(userId)
+    return await userService.getUSerById(userId)
 
 @router.patch("/")
 async def changeAddress(user: Annotated[UserToken, Depends(authService.setUser)], address: str = "")->None:

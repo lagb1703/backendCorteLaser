@@ -1,6 +1,10 @@
+from fastapi import HTTPException
 from src.utils.PostgressClient import PostgressClient
 from src.UserModule.dtos import User, UserToken
+from hashlib import sha256
+from src.UserModule.enums import UserSql
 from typing import List
+import logging
 class UserService:
     
     __instance: 'UserService | None' = None
@@ -13,29 +17,51 @@ class UserService:
     
     def __init__(self):
         self.__postgress: PostgressClient = PostgressClient.getInstance()
+        self.__logger = logging.getLogger("UserService")
         
     async def login(self, userName: str, password: str)->UserToken:
-        return UserToken(
-            id=0, 
-            email="ejemplo@gmail.com"
-        )
+        try:
+            passSha256: str = sha256(password.encode('utf-8')).hexdigest()
+            user = await self.__postgress.query(UserSql.login.value, [userName, passSha256])
+            print(user)
+            return UserToken.model_validate(user[0])
+        except Exception as e:
+            print(str(e))
+            raise HTTPException(400, "")
     
     async def register(self, user: User)->bool:
+        try:
+            user.password = sha256(user.password.encode('utf-8')).hexdigest()
+            id: int | str | None = (await self.__postgress.save(UserSql.register.value, user.__dict__))["p_id"]
+            if id is None:
+                raise HTTPException(400, "")
+            return True
+        except Exception as e:
+            self.__logger.info(str(e))
         return True
     
     async def getAllUser(self)->List[User]:
-        return []
+        try:
+            rows = await self.__postgress.query(UserSql.getAllUser.value, [])
+            users: List[User] = [User.model_validate(r) for r in rows]
+            return users
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise 
     
     async def getUSerById(self, id: str | int)->User:
-        return User(
-            names="pepe el mago",
-            lastNames="no se",
-            email="constantemente@gmail.com",
-            password="contraseña",
-            address="aca",
-            phone="3017222568",
-            isAdmin=True
-        )
+        try:
+            rows = await self.__postgress.query(UserSql.getUSerById.value, [id])
+            return User.model_validate(rows[0])
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
         
     async def changeAddress(self, address: str, user: UserToken)->None:
-        return
+        try:
+            await self.__postgress.update(UserSql.changeAddress.value, {
+                "address": address
+            }, user.id)
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise

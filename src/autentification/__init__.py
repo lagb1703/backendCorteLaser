@@ -8,7 +8,7 @@ authService = AuthService.getInstance()
 
 @router.post("/login")
 async def login(userLogin: UserLogin):
-    return authService.login(userLogin.email, userLogin.password)
+    return await authService.login(userLogin.email, userLogin.password)
 
 
 @router.get("/login/google")

@@ -45,8 +45,8 @@ class AuthService:
             }
         )
         
-    def login(self, userName: str, password: str)->str | bytes:
-        user = self.__userService.login(userName, password)
+    async def login(self, userName: str, password: str)->str | bytes:
+        user = await self.__userService.login(userName, password)
         return self.__segurity.getToken(user)
     
     async def loginGoogle(self, request: Request)-> Any:
@@ -80,10 +80,10 @@ class AuthService:
         except ExpiredTokenError as _:
             raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
     
-    def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
+    async def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
         token = credentials.credentials
-        userToken = self.__segurity.setUser(token)
-        user = self.__userService.getUSerById(userToken.id)
+        userToken =  self.__segurity.setUser(token)
+        user = await self.__userService.getUSerById(userToken.id)
         userToken.isAdmin = user.isAdmin
         if not userToken.isAdmin:
             raise HTTPException(status_code=403, detail=ExceptionsEnum.NO_ROLL.value)

@@ -36,10 +36,7 @@ class Segurity:
     
     def setUser(self, token: str | bytes)->'UserToken':
         user = self.__jwt.decode(token)
-        return self.__tokenDto(
-            id=user["id"],
-            email=user["email"],
-        )
+        return self.__tokenDto.model_validate(user)
         
     def refreshToken(self, token: str | bytes) -> str | bytes:
         return self.__jwt.refresh(token)
