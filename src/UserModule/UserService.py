@@ -23,10 +23,9 @@ class UserService:
         try:
             passSha256: str = sha256(password.encode('utf-8')).hexdigest()
             user = await self.__postgress.query(UserSql.login.value, [userName, passSha256])
-            print(user)
             return UserToken.model_validate(user[0])
         except Exception as e:
-            print(str(e))
+            self.__logger.info(str(e))
             raise HTTPException(400, "")
     
     async def register(self, user: User)->bool:

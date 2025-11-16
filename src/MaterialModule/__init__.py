@@ -15,7 +15,7 @@ materialService = MaterialService.getInstance()
 async def getAllMaterials()->List[Material]:
     return await materialService.getAllMaterials()
 
-@router.get("/thickness")
+@router.get("/thickness/all")
 async def getAllThickness()->List[Thickness]:
     return await materialService.getAllThickness()
 
@@ -28,7 +28,7 @@ async def getThicknessByMaterial(materialId: str)->List[Thickness]:
     return await materialService.getThicknessByMaterial(materialId)
 
 @router.post("/material")
-async def addNewMaterial(material: Material, _: Annotated[UserToken, Depends(authService.setUserAdmin)])-> str:
+async def addNewMaterial(material: Material, _: Annotated[UserToken, Depends(authService.setUserAdmin)])-> str | int:
     return await materialService.addNewMaterial(material)
 
 @router.put("/material/{materialId}")
@@ -40,7 +40,7 @@ async def deleteMaterial(materialId: str, _: Annotated[UserToken, Depends(authSe
     return await materialService.deleteMaterial(materialId)
 
 @router.post("/thickness/{materialId}")
-async def addNewThickness(thickness: Thickness, materialId: str, _: Annotated[UserToken, Depends(authService.setUserAdmin)])->str:
+async def addNewThickness(thickness: Thickness, materialId: str, _: Annotated[UserToken, Depends(authService.setUserAdmin)])->str | int:
     return await materialService.addNewThickness(thickness, materialId)
 
 @router.put("/thickness/{thicknessId}")
@@ -49,7 +49,7 @@ async def changeThickness(thicknessId: str, thickness: Thickness, _: Annotated[U
 
 @router.delete("/thickness/{thicknessId}")
 async def delteThickness(thicknessId: str, _: Annotated[UserToken, Depends(authService.setUserAdmin)])-> None:
-    return await materialService.delteThickness(thicknessId)
+    return await materialService.deleteThickness(thicknessId)
 
 @router.post("/mt/{materialId}/{thicknessId}")
 async def addMaterialThickness(materialId: str, thicknessId: str, _: Annotated[UserToken, Depends(authService.setUserAdmin)]):
