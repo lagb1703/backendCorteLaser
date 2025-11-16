@@ -1,15 +1,16 @@
-import datetime
 from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator
 from src.FileModule.storageService import StorageService
-from src.FileModule.enums import ExceptionsEnum, FolderName
+from src.FileModule.enums import ExceptionsEnum, FileSql, FolderName
 from src.FileModule.costCalculator import CostCalculator
+from src.MaterialModule.materialService import MaterialService
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import  StreamingResponse
 from typing import List
-from src.FileModule.dtos import FileDb
+from src.FileModule.dtos import FileDb, PriceResponse
 from src.utils.PostgressClient import PostgressClient
 from io import BytesIO
+import logging
 
 class FileService:
     
@@ -25,15 +26,40 @@ class FileService:
         self.__storage: StorageService = StorageService.getInstance()
         self.__creator: GeometryAnaliserCreator = GeometryAnaliserCreator.getInstance()
         self.__postgress: PostgressClient = PostgressClient.getInstance()
+        self.__materialService: MaterialService = MaterialService.getInstance()
+        self.__logger = logging.getLogger("FileService")
         
     async def __getFileInfo(self, id: str | int, user: UserToken)->FileDb:
-        return FileDb(id=0, name="figura.dxf", date=datetime.datetime.now(), md5="", bucket="", userId=0)
+        try:
+            file = await self.__postgress.query(FileSql.getFileById.value, [id])
+            return FileDb.model_validate(file)
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+            
     async def __saveFileInfo(self, fileDb: FileDb, user:UserToken)->int | str:
-        return 0
+        try:
+            fileDb.userId = user.id
+            return (await self.__postgress.save(FileSql.saveFile.value, fileDb.__dict__))["p_id"]
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+            
     async def __deleteFileInfo(self, id: str | int) -> None:
-        pass
-    async def __saveQuote(self, fileId: str | int, materialId: str, thicknessId: str)-> None:
-        pass
+        try:
+            await self.__postgress.delete(FileSql.deleteFile.value, id)
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+    async def __saveQuote(self, fileId: str | int, mtId: str | int)-> int | str:
+        try:
+            return (await self.__postgress.save(FileSql.saveFile.value, {
+                    "fileId":fileId,
+                    "mtId":mtId
+                }))["p_id"]
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
     
     async def saveFile(self, file: UploadFile, user: UserToken)->str | int:
         if file.filename is None:
@@ -74,9 +100,15 @@ class FileService:
         )
         
     async def getAllUserInfoFiles(self, user: UserToken)->List[FileDb]:
-        return []
+        try:
+            rows = await self.__postgress.query(FileSql.getAllUserFiles.value, [user.id])
+            return [FileDb.model_validate(r) for r in rows]
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise HTTPException(500, "")
+            
     
-    async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->float:
+    async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->PriceResponse:
         cost = CostCalculator()
         fileInfo = await self.__getFileInfo(id, user)
         onlyName:str = fileInfo.name.split('.')[0]
@@ -85,5 +117,10 @@ class FileService:
         perimeter = geo.getPerimeter()
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
-        await self.__saveQuote(id, materialId, thicknessId)
-        return cost.getPrice(1000, 100, area, perimeter)
+        mtId = await self.__materialService.addMaterialThickness(materialId, thicknessId)
+        if mtId is None:
+            raise
+        return PriceResponse(
+            price=cost.getPrice(1000, 100, area, perimeter),
+            quoteId=await self.__saveQuote(id, mtId)
+        )
