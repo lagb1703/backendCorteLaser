@@ -21,7 +21,7 @@ class FileSql(Enum):
     """
     getAllUserFiles="""
         SELECT 
-            ftff."fileId" as "fileId",
+            ftff."fileId" as "id",
             ftff.name as "name",
             ftff.md5 as "md5",
             ftff.bucket as "bucket",

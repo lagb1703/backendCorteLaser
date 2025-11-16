@@ -10,6 +10,7 @@ from typing import List
 from src.FileModule.dtos import FileDb, PriceResponse
 from src.utils.PostgressClient import PostgressClient
 from io import BytesIO
+import hashlib
 import logging
 
 class FileService:
@@ -31,7 +32,8 @@ class FileService:
         
     async def __getFileInfo(self, id: str | int, user: UserToken)->FileDb:
         try:
-            file = await self.__postgress.query(FileSql.getFileById.value, [id])
+            file = (await self.__postgress.query(FileSql.getFileById.value, [int(id)]))[0]
+            file["date"]=str(file["date"])
             return FileDb.model_validate(file)
         except Exception as e:
             self.__logger.info(str(e))
@@ -64,9 +66,9 @@ class FileService:
     async def saveFile(self, file: UploadFile, user: UserToken)->str | int:
         if file.filename is None:
             raise HTTPException(400, ExceptionsEnum.BAD_FILE.value.replace(":file", "").replace(":description", "Nombre no valido"))
-        fileInfo = FileDb(id=None, name=file.filename, date=None, md5="", bucket="", userId=user.id)
-        id = await self.__saveFileInfo(fileInfo, user)
         fileBytes: bytes = await file.read()
+        fileInfo = FileDb(id=None, name=file.filename, date=None, md5=hashlib.md5(fileBytes).hexdigest(), bucket=FolderName.ORIGINAL.value, userId=user.id)
+        id = await self.__saveFileInfo(fileInfo, user)
         self.__storage.upload(fileBytes, file.filename, FolderName.ORIGINAL.value)
         geo = self.__creator.createGeometry(file.filename.split(".")[1], fileBytes)
         self.__storage.upload(geo.save(), f"{fileInfo.name.split('.')[0]}.wkb", FolderName.WKB.value)
@@ -102,9 +104,13 @@ class FileService:
     async def getAllUserInfoFiles(self, user: UserToken)->List[FileDb]:
         try:
             rows = await self.__postgress.query(FileSql.getAllUserFiles.value, [user.id])
-            return [FileDb.model_validate(r) for r in rows]
+            result: List[FileDb] = []
+            for r in rows:
+                r["date"]=str(r["date"])
+                result.append(FileDb.model_validate(r))
+            return result
         except Exception as e:
-            self.__logger.info(str(e))
+            print(str(e))
             raise HTTPException(500, "")
             
     
@@ -118,8 +124,6 @@ class FileService:
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
         mtId = await self.__materialService.addMaterialThickness(materialId, thicknessId)
-        if mtId is None:
-            raise
         return PriceResponse(
             price=cost.getPrice(1000, 100, area, perimeter),
             quoteId=await self.__saveQuote(id, mtId)
