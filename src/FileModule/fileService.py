@@ -55,10 +55,12 @@ class FileService:
             raise
     async def __saveQuote(self, fileId: str | int, mtId: str | int)-> int | str:
         try:
-            return (await self.__postgress.save(FileSql.saveFile.value, {
+            id = (await self.__postgress.save(FileSql.saveQuote.value, {
                     "fileId":fileId,
                     "mtId":mtId
-                }))["p_id"]
+                }))
+            print(id)
+            return id["p_id"]
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -69,14 +71,14 @@ class FileService:
         fileBytes: bytes = await file.read()
         fileInfo = FileDb(id=None, name=file.filename, date=None, md5=hashlib.md5(fileBytes).hexdigest(), bucket=FolderName.ORIGINAL.value, userId=user.id)
         id = await self.__saveFileInfo(fileInfo, user)
-        self.__storage.upload(fileBytes, file.filename, FolderName.ORIGINAL.value)
+        self.__storage.upload(fileBytes, f"{fileInfo.md5}.{file.filename.split('.')[1]}", FolderName.ORIGINAL.value)
         geo = self.__creator.createGeometry(file.filename.split(".")[1], fileBytes)
-        self.__storage.upload(geo.save(), f"{fileInfo.name.split('.')[0]}.wkb", FolderName.WKB.value)
+        self.__storage.upload(geo.save(), f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         return id
     
     async def getFile(self, id: str | int, user: UserToken)->StreamingResponse:
         fileInfo = await self.__getFileInfo(id, user)
-        file: bytes = self.__storage.download(fileInfo.name, FolderName.ORIGINAL.value)
+        file: bytes = self.__storage.download(f"{fileInfo.md5}.{fileInfo.name.split('.')[1]}", FolderName.ORIGINAL.value)
         return StreamingResponse(
             BytesIO(file),
             media_type="application/octet-stream",
@@ -91,14 +93,13 @@ class FileService:
         
     async def getImage(self, id: str | int, user: UserToken)->StreamingResponse:
         fileInfo = await self.__getFileInfo(id, user)
-        onlyName:str = fileInfo.name.split('.')[0]
-        fileWBT:bytes = self.__storage.download(f"{onlyName}.wkb", FolderName.WKB.value)
+        fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
         image = geo.createImage()
         return StreamingResponse(
             content=BytesIO(image),
             media_type="image/png",
-            headers={"Content-Disposition": f"attachment; filename={onlyName}.png"}
+            headers={"Content-Disposition": f"attachment; filename={fileInfo.name}.png"}
         )
         
     async def getAllUserInfoFiles(self, user: UserToken)->List[FileDb]:
@@ -117,13 +118,14 @@ class FileService:
     async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->PriceResponse:
         cost = CostCalculator()
         fileInfo = await self.__getFileInfo(id, user)
-        onlyName:str = fileInfo.name.split('.')[0]
-        fileWBT:bytes = self.__storage.download(f"{onlyName}.wkb", FolderName.WKB.value)
+        fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
         perimeter = geo.getPerimeter()
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
-        mtId = await self.__materialService.addMaterialThickness(materialId, thicknessId)
+        mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
+        if mtId is None:
+            raise
         return PriceResponse(
             price=cost.getPrice(1000, 100, area, perimeter),
             quoteId=await self.__saveQuote(id, mtId)

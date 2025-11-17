@@ -18,7 +18,7 @@ class MaterialService:
         self.__postgress = PostgressClient.getInstance()
         self.__logger = logging.getLogger("MaterialService")
         
-    async def __getMtIdByMaterialIdThicknessId(self, materialId: str | int, thicknessId: str | int)-> int | str | None:
+    async def getMtIdByMaterialIdThicknessId(self, materialId: str | int, thicknessId: str | int)-> int | str | None:
         try:
             return (await self.__postgress.query(MaterialSql.getMtIdByMaterialIdThicknessId.value, [int(materialId), int(thicknessId)]))[0]["mtId"]
         except Exception as e:
@@ -101,7 +101,7 @@ class MaterialService:
     
     async def deleteMaterialThickness(self, materialId: str, thicknessId: str)->None:
         try:
-            mtId = await self.__getMtIdByMaterialIdThicknessId(materialId, thicknessId)
+            mtId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
             if mtId is None:
                 return 
             await self.__postgress.delete(MaterialSql.deleteMaterialThickness.value, mtId)
