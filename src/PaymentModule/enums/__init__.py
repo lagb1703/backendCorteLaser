@@ -9,3 +9,34 @@ class ExceptionsEnum(Enum):
     
 class PaymentStatus(Enum):
     APPROVED="APPROVED"
+    
+class PaymentSql(Enum):
+    getAllPaymentMethods="""
+        SELECT 
+            ptppm."paymentMethodId" as "id",
+            ptppm."paymentMethod" as "name"
+        FROM "PAYMENT"."TB_PAYMENT_PAYMENTSMETHODS" ptppm
+    """
+    getPaymentsByUserId="""
+        SELECT 
+            ptpp."paymentId" as "id",
+            ptpp."p_id" as "p_id",
+            ptpp.status as "status",
+            ptpp.reference as "reference",
+            ptpp."createdAt" as "createdAt",
+            ptpp."paymentMethodId" as "paymentMethodId",
+            ptppm."paymentMethod" as "paymentMethod"
+        FROM "PAYMENT"."TB_PAYMENT_MTPAYMENT" ptpmp
+        LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTS" ptpp
+            ON ptpp."paymentId" = ptpmp."paymentId"
+        LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTSMETHODS" ptppm
+            ON ptppm."paymentMethodId" = ptpp."paymentMethodId"
+        LEFT JOIN "FILE"."TB_FILE_MTFILES" mtfmt
+            ON mtfmt."mtId" = ptpmp."mtId"
+        LEFT JOIN "FILE"."TB_FILE_FILES" ftff
+            ON ftff."fileId" = mtfmt."fileId"
+        WHERE ftff."userId" = $1
+    """
+    savePayment="""
+        call "PAYMENT"."SP_PA_PAYMENTPKG_AGREGARPAYMENT"($1, $2)
+    """

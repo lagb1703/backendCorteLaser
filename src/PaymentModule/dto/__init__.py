@@ -39,6 +39,9 @@ class PaymentMethodWompi(BaseModel):
         return self
     
 class PaymentType(BaseModel):
+    id: Optional[str | int] = None
+    status: Optional[str] = None
+    paymentMethodId: Optional[str | int] = None
     acceptance_token: str
     accept_personal_auth: str
     amount_in_cents: Annotated[int, Field(examples=[150000])]

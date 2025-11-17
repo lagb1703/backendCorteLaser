@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Response
 from src.PaymentModule.paymentService import PaymentService
-from src.PaymentModule.dto import AcceptanceTokens, PaymentType, DbPaymentType
+from src.PaymentModule.dto import AcceptanceTokens, PaymentMethodType, PaymentType, DbPaymentType
 from src.UserModule.dtos import UserToken
 from src.autentification.AuthService import AuthService
 from typing import Annotated, List
@@ -22,7 +22,11 @@ async def makePayment(payment: PaymentType, u: Annotated[UserToken, Depends(auth
 
 @router.get("/")
 async def getPayments(u: Annotated[UserToken, Depends(authService.setUser)])->List[DbPaymentType]:
-    return paymentService.getPayments(u.id)
+    return await paymentService.getPayments(u.id)
+
+@router.get("/paymentsMethods")
+async def getPaymentMethods()->List[PaymentMethodType]:
+    return await paymentService.getPaymentMethods()
 
 @router.get("/verify")
 async def verifyPayment(id: str, u: Annotated[UserToken, Depends(authService.setUser)])->str:
