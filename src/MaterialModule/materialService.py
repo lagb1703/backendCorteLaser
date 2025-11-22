@@ -43,10 +43,18 @@ class MaterialService:
             self.__logger.info(str(e))
             raise
     
-    async def getMaterialById(self, materialId: str)->Material:
+    async def getMaterialById(self, materialId: str | int)->Material:
         try:
-            material = (await self.__postgress.query(MaterialSql.getMaterialById.value, []))[0]
+            material = (await self.__postgress.query(MaterialSql.getMaterialById.value, [int(materialId)]))[0]
             return Material.model_validate(material)
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+    
+    async def getThicknessById(self, thicknessId: str | int)->Thickness:
+        try:
+            thickness = (await self.__postgress.query(MaterialSql.getThicknessById.value, [int(thicknessId)]))[0]
+            return Thickness.model_validate(thickness)
         except Exception as e:
             self.__logger.info(str(e))
             raise

@@ -30,7 +30,7 @@ class FileService:
         self.__materialService: MaterialService = MaterialService.getInstance()
         self.__logger = logging.getLogger("FileService")
         
-    async def __getFileInfo(self, id: str | int, user: UserToken)->FileDb:
+    async def getFileInfo(self, id: str | int, user: UserToken)->FileDb:
         try:
             file = (await self.__postgress.query(FileSql.getFileById.value, [int(id)]))[0]
             file["date"]=str(file["date"])
@@ -77,7 +77,7 @@ class FileService:
         return id
     
     async def getFile(self, id: str | int, user: UserToken)->StreamingResponse:
-        fileInfo = await self.__getFileInfo(id, user)
+        fileInfo = await self.getFileInfo(id, user)
         file: bytes = self.__storage.download(f"{fileInfo.md5}.{fileInfo.name.split('.')[1]}", FolderName.ORIGINAL.value)
         return StreamingResponse(
             BytesIO(file),
@@ -86,13 +86,13 @@ class FileService:
         )
     
     async def deleteFile(self, id: str | int, user: UserToken)->None:
-        fileInfo = await self.__getFileInfo(id, user)
+        fileInfo = await self.getFileInfo(id, user)
         await self.__deleteFileInfo(id)
         self.__storage.delete(fileInfo.name, FolderName.ORIGINAL.value)
         self.__storage.delete(f"{fileInfo.name.split('.')[0]}.wkb", FolderName.WKB.value)
         
     async def getImage(self, id: str | int, user: UserToken)->StreamingResponse:
-        fileInfo = await self.__getFileInfo(id, user)
+        fileInfo = await self.getFileInfo(id, user)
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
         image = geo.createImage()
@@ -117,7 +117,7 @@ class FileService:
     
     async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->PriceResponse:
         cost = CostCalculator()
-        fileInfo = await self.__getFileInfo(id, user)
+        fileInfo = await self.getFileInfo(id, user)
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
         perimeter = geo.getPerimeter()

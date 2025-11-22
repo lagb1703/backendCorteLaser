@@ -59,7 +59,7 @@ class UserService:
     
     async def getUSerById(self, id: str | int)->User:
         try:
-            rows = await self.__postgress.query(UserSql.getUSerById.value, [id])
+            rows = await self.__postgress.query(UserSql.getUSerById.value, [int(id)])
             return User.model_validate(rows[0])
         except Exception as e:
             self.__logger.info(str(e))
