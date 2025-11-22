@@ -14,4 +14,5 @@ class EmailClient:
         self.__password: str = e.get(EnviromentsEnum.GOOGLE_MAIL_PASS.value)
     
     async def send(self, message: EmailMessage)->None:
+        message["From"] = self.__fromEmail
         await aiosmtplib.send(message, hostname=self.__hostName, port=self.__port, username=self.__fromEmail, password=self.__password)
