@@ -42,16 +42,10 @@ origins = [
     "http://localhost",
     "http://localhost:3000", 
     "http://localhost:3001",  
+    "https://solid-orbit-wrrq9pvpvrjf9p44-5173.app.github.dev",
 ]
 
 e = Enviroment.getInstance()
-
-app.add_middleware(
-    SessionMiddleware, 
-    secret_key=e.get(EnviromentsEnum.JWT_KEY.value),
-    same_site="lax",
-    https_only=False
-)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +53,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=e.get(EnviromentsEnum.JWT_KEY.value),
+    same_site="lax",
+    https_only=False
 )
 
 app.include_router(routers)

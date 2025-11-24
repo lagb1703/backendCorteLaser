@@ -13,8 +13,8 @@ authService = AuthService.getInstance()
 
 
 @router.get("/")
-async def getUser(user: Annotated[UserToken, Depends(authService.setUser)])->UserToken:
-    return user
+async def getUser(user: Annotated[UserToken, Depends(authService.setUser)])->User:
+    return await userService.getUSerById(user.id)
 
 @router.post("/register")
 async def register(user: User):

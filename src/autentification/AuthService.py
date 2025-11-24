@@ -63,7 +63,7 @@ class AuthService:
             if not email or not isinstance(email, str):
                 raise HTTPException(status_code=400, detail=ExceptionsEnum.NO_TOKEN.value)
             from src.UserModule.dtos import UserToken
-            t: UserToken = UserToken(id=0, email=email)
+            t: UserToken = UserToken(id=0, email=email, isAdmin=True)
             return self.__segurity.getToken(t)
 
         except ssl.SSLError as ssl_error:
