@@ -36,6 +36,6 @@ async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.s
     """
     return await userService.getUSerById(userId)
 
-@router.patch("/")
+@router.patch("/address/{address}")
 async def changeAddress(user: Annotated[UserToken, Depends(authService.setUser)], address: str = "")->None:
     return await userService.changeAddress(address, user)

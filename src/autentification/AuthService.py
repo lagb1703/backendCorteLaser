@@ -81,13 +81,16 @@ class AuthService:
             raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
     
     async def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
-        token = credentials.credentials
-        userToken =  self.__segurity.setUser(token)
-        user = await self.__userService.getUSerById(userToken.id)
-        userToken.isAdmin = user.isAdmin
-        if not userToken.isAdmin:
-            raise HTTPException(status_code=403, detail=ExceptionsEnum.NO_ROLL.value)
-        return userToken
+        try:
+            token = credentials.credentials
+            userToken =  self.__segurity.setUser(token)
+            user = await self.__userService.getUSerById(userToken.id)
+            userToken.isAdmin = user.isAdmin
+            if not userToken.isAdmin:
+                raise HTTPException(status_code=403, detail=ExceptionsEnum.NO_ROLL.value)
+            return userToken
+        except ExpiredTokenError as _:
+            raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
         
     def refreshToken(self, token: str) -> str | bytes:
         return self.__segurity.refreshToken(token)
