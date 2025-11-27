@@ -3,6 +3,8 @@ from src.MaterialModule.enums import MaterialSql
 from src.utils.PostgressClient import PostgressClient
 from typing import List
 import logging
+import asyncpg # type: ignore
+from fastapi import HTTPException
 
 class MaterialService:
     
@@ -66,19 +68,32 @@ class MaterialService:
         except Exception as e:
             self.__logger.info(str(e))
             raise
+        
+    async def getThicknessNoLinkedToMaterial(self, materialId: str | int)-> List[Thickness]:
+        try:
+            thickness = await self.__postgress.query(MaterialSql.getThicknessNoLinkedToMaterial.value, [int(materialId)])
+            return [Thickness.model_validate(t) for t in thickness]
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
     
     async def addNewMaterial(self, material: Material)->str | int:
         try:
             return (await self.__postgress.save(MaterialSql.addNewMaterial.value, material.__dict__))["p_id"]
+        except asyncpg.exceptions.UniqueViolationError as e:
+            self.__logger.info(f"Unique violation: {e}")
+            raise HTTPException(status_code=409, detail="Registro duplicado")
         except Exception as e:
             self.__logger.info(str(e))
             raise
             
     
-    async def addNewThickness(self, thickness: Thickness, materialId: str)->str | int:
+    async def addNewThickness(self, thickness: Thickness)->str | int:
         try:
-            thickness.materialId = materialId
             return (await self.__postgress.save(MaterialSql.addNewThickness.value, thickness.__dict__))["p_id"]
+        except asyncpg.exceptions.UniqueViolationError as e:
+            self.__logger.info(f"Unique violation: {e}")
+            raise HTTPException(status_code=409, detail="Registro duplicado")
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -103,6 +118,9 @@ class MaterialService:
                     "materialId":materialId,
                     "thicknessId":thicknessId
                 }))["p_id"]
+        except asyncpg.exceptions.UniqueViolationError as e:
+            self.__logger.info(f"Unique violation: {e}")
+            raise HTTPException(status_code=409, detail="Registro duplicado para material y espesor")
         except Exception as e:
             self.__logger.info(str(e))
             raise

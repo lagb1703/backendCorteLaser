@@ -63,6 +63,22 @@ class MaterialSql(Enum):
             AND mtmmt."deleted" = false
             AND mtmt."deleted" = false
     """
+    getThicknessNoLinkedToMaterial="""
+        WITH sub as (
+            SELECT 
+                mtmmt."thicknessId"
+            FROM "MATERIAL"."TB_MATERIAL_MATERIALTHICKNESS" mtmmt
+            WHERE mtmmt."materialId" = $1 AND mtmmt."deleted" = false
+        )
+        SELECT 
+            mtmt."thicknessId" as "thicknessId",
+            mtmt."name" as "name",
+            mtmt."price" as "price",
+            mtmt."lastmodification" as "lastModification"
+        FROM "MATERIAL"."TB_MATERIAL_THICKNESS" mtmt
+        WHERE mtmt."thicknessId" NOT IN (select * from sub)
+            AND mtmt."deleted" = false
+    """
     addNewThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_AGREGARTHICKNESS"($1, $2)
     """
