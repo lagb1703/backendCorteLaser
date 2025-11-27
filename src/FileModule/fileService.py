@@ -6,7 +6,7 @@ from src.MaterialModule.materialService import MaterialService
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import  StreamingResponse
-from typing import List
+from typing import List, Dict, Any
 from src.FileModule.dtos import FileDb, PriceResponse
 from src.utils.PostgressClient import PostgressClient
 from io import BytesIO
@@ -30,11 +30,18 @@ class FileService:
         self.__materialService: MaterialService = MaterialService.getInstance()
         self.__logger = logging.getLogger("FileService")
         
+    def __single_result_or_http_error(self, rows: List[Dict[str, Any]] | None, not_found_message: str = "Recurso no encontrado") -> Dict[str, Any]:
+        if rows is None or len(rows) == 0:
+            raise HTTPException(status_code=404, detail=not_found_message)
+        return rows[0]
     async def getFileInfo(self, id: str | int, user: UserToken)->FileDb:
         try:
-            file = (await self.__postgress.query(FileSql.getFileById.value, [int(id)]))[0]
-            file["date"]=str(file["date"])
+            rows = await self.__postgress.query(FileSql.getFileById.value, [int(id)])
+            file = self.__single_result_or_http_error(rows, f"Archivo con id {id} no encontrado")
+            file["date"] = str(file["date"]) if file.get("date") is not None else None
             return FileDb.model_validate(file)
+        except HTTPException:
+            raise
         except Exception as e:
             self.__logger.info(str(e))
             raise
