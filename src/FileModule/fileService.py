@@ -73,15 +73,22 @@ class FileService:
             raise
     
     async def saveFile(self, file: UploadFile, user: UserToken)->str | int:
-        if file.filename is None:
-            raise HTTPException(400, ExceptionsEnum.BAD_FILE.value.replace(":file", "").replace(":description", "Nombre no valido"))
-        fileBytes: bytes = await file.read()
-        fileInfo = FileDb(id=None, name=file.filename, date=None, md5=hashlib.md5(fileBytes).hexdigest(), bucket=FolderName.ORIGINAL.value, userId=user.id)
-        id = await self.__saveFileInfo(fileInfo, user)
-        self.__storage.upload(fileBytes, f"{fileInfo.md5}.{file.filename.split('.')[1]}", FolderName.ORIGINAL.value)
-        geo = self.__creator.createGeometry(file.filename.split(".")[1], fileBytes)
-        self.__storage.upload(geo.save(), f"{fileInfo.md5}.wkb", FolderName.WKB.value)
-        return id
+        try:
+            if file.filename is None:
+                raise HTTPException(400, ExceptionsEnum.BAD_FILE.value.replace(":file", "").replace(":description", "Nombre no valido"))
+            fileBytes: bytes = await file.read()
+            geo = self.__creator.createGeometry(file.filename.split(".")[-1], fileBytes)
+            fileInfo = FileDb(id=None, name=file.filename, date=None, md5=hashlib.md5(fileBytes).hexdigest(), bucket=FolderName.ORIGINAL.value, userId=user.id)
+            id = await self.__saveFileInfo(fileInfo, user)
+            self.__storage.upload(fileBytes, f"{fileInfo.md5}.{file.filename.split('.')[1]}", FolderName.ORIGINAL.value)
+            self.__storage.upload(geo.save(), f"{fileInfo.md5}.wkb", FolderName.WKB.value)
+            return id
+        except ValueError as e:
+            print(e)
+            raise HTTPException(400, str(e))
+        except HTTPException as e:
+            print(e)
+            raise
     
     async def getFile(self, id: str | int, user: UserToken)->StreamingResponse:
         fileInfo = await self.getFileInfo(id, user)
@@ -95,8 +102,8 @@ class FileService:
     async def deleteFile(self, id: str | int, user: UserToken)->None:
         fileInfo = await self.getFileInfo(id, user)
         await self.__deleteFileInfo(id)
-        self.__storage.delete(fileInfo.name, FolderName.ORIGINAL.value)
-        self.__storage.delete(f"{fileInfo.name.split('.')[0]}.wkb", FolderName.WKB.value)
+        self.__storage.delete(f"{fileInfo.md5}.dfx", FolderName.ORIGINAL.value)
+        self.__storage.delete(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         
     async def getImage(self, id: str | int, user: UserToken)->StreamingResponse:
         fileInfo = await self.getFileInfo(id, user)
