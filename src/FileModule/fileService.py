@@ -138,9 +138,11 @@ class FileService:
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
         mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
+        material = await self.__materialService.getMaterialById(materialId)
+        thickness = await self.__materialService.getThicknessById(thicknessId)
         if mtId is None:
             raise
         return PriceResponse(
-            price=cost.getPrice(1000, 100, area, perimeter),
+            price=cost.getPrice(material.price, thickness.price , area, perimeter),
             quoteId=await self.__saveQuote(id, mtId)
         )
