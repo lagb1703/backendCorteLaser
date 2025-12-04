@@ -12,6 +12,7 @@ from src.utils.PostgressClient import PostgressClient
 from io import BytesIO
 import hashlib
 import logging
+from asyncpg.exceptions import UniqueViolationError # type: ignore
 
 class FileService:
     
@@ -84,11 +85,10 @@ class FileService:
             self.__storage.upload(geo.save(), f"{fileInfo.md5}.wkb", FolderName.WKB.value)
             return id
         except ValueError as e:
-            print(e)
             raise HTTPException(400, str(e))
-        except HTTPException as e:
-            print(e)
-            raise
+        except UniqueViolationError as e:
+            raise HTTPException(status_code=409, detail=ExceptionsEnum.DUPLICATED_FILE.value)
+        except HTTPException as e:            raise
     
     async def getFile(self, id: str | int, user: UserToken)->StreamingResponse:
         fileInfo = await self.getFileInfo(id, user)
