@@ -102,7 +102,7 @@ class FileService:
     async def deleteFile(self, id: str | int, user: UserToken)->None:
         fileInfo = await self.getFileInfo(id, user)
         await self.__deleteFileInfo(id)
-        self.__storage.delete(f"{fileInfo.md5}.dfx", FolderName.ORIGINAL.value)
+        self.__storage.delete(f"{fileInfo.md5}.dxf", FolderName.ORIGINAL.value)
         self.__storage.delete(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         
     async def getImage(self, id: str | int, user: UserToken)->StreamingResponse:

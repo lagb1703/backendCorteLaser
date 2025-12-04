@@ -44,7 +44,7 @@ class PaymentType(BaseModel):
     paymentMethodId: Optional[str | int] = None
     acceptance_token: str
     accept_personal_auth: str
-    amount_in_cents: Annotated[int, Field(examples=[150000])]
+    amount_in_cents: Optional[Annotated[int, Field(examples=[150000])]] = None
     payment_method: PaymentMethodWompi
     card: Optional[WompiTokenizerType]
     reference: str
