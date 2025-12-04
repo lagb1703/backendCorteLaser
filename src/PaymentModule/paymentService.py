@@ -86,7 +86,7 @@ class PaymentService:
     
     async def getPayments(self, userId: int)->List[DbPaymentType]:
         try:
-            rows = await self.__postgress.query(PaymentSql.getPaymentsByUserId.value, [userId])
+            rows = await self.__postgress.query(PaymentSql.getPaymentsByUserId.value, [str(userId)])
             return [DbPaymentType.model_validate(r) for r in rows]
         except Exception as e:
             print(e)

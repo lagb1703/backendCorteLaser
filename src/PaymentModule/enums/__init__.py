@@ -23,19 +23,13 @@ class PaymentSql(Enum):
             ptpp."p_id" as "p_id",
             ptpp.status as "status",
             ptpp.reference as "reference",
-            ptpp."createdAt" as "createdAt",
+            ptpp."createdAt"::TEXT as "created_at",
             ptpp."paymentMethodId" as "paymentMethodId",
             ptppm."paymentMethod" as "paymentMethod"
-        FROM "PAYMENT"."TB_PAYMENT_MTPAYMENT" ptpmp
-        LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTS" ptpp
-            ON ptpp."paymentId" = ptpmp."paymentId"
+        FROM "PAYMENT"."TB_PAYMENT_PAYMENTS" ptpp
         LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTSMETHODS" ptppm
             ON ptppm."paymentMethodId" = ptpp."paymentMethodId"
-        LEFT JOIN "FILE"."TB_FILE_MTFILES" mtfmt
-            ON mtfmt."mtId" = ptpmp."mtId"
-        LEFT JOIN "FILE"."TB_FILE_FILES" ftff
-            ON ftff."fileId" = mtfmt."fileId"
-        WHERE ftff."userId" = $1
+        WHERE SPLIT_PART(ptpp."reference", '@', 3) = $1
     """
     savePayment="""
         call "PAYMENT"."SP_PA_PAYMENTPKG_AGREGARPAYMENT"($1, $2)
