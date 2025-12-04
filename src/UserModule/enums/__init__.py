@@ -1,5 +1,8 @@
 from enum import Enum
 
+class ExceptionsEnum(Enum):
+    DUPLICATED_USER = "El correo ya ha sido registrado anteriormente"
+
 class UserSql(Enum):
     login="""
         SELECT 

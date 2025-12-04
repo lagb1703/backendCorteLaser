@@ -2,10 +2,11 @@ from fastapi import HTTPException
 from src.utils.PostgressClient import PostgressClient
 from src.UserModule.dtos import User, UserToken
 from hashlib import sha256
-from src.UserModule.enums import UserSql
+from src.UserModule.enums import UserSql, ExceptionsEnum
 from typing import List
 from src.utils.EmailClient import EmailClient
 from email.message import EmailMessage
+from asyncpg.exceptions import UniqueViolationError # type: ignore
 
 import logging
 class UserService:
@@ -49,9 +50,13 @@ class UserService:
             email.set_content("Recientemente se ha incrito una cuenta a nombre de este correo, si no ha sido usted, porfavor, responda este correo")
             await self.__emailClient.send(email)
             return True
+        except HTTPException as e:
+            raise
+        except UniqueViolationError as e:
+            raise HTTPException(status_code=409, detail=ExceptionsEnum.DUPLICATED_USER.value)
         except Exception as e:
             self.__logger.info(str(e))
-        return True
+            raise
     
     async def getAllUser(self)->List[User]:
         try:
