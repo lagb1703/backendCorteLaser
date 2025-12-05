@@ -101,6 +101,9 @@ class MaterialService:
     async def changeMaterial(self, materialId: str, material: Material)->None:
         try:
             await self.__postgress.update(MaterialSql.changeMaterial.value, material.__dict__,materialId)
+        except asyncpg.exceptions.UniqueViolationError as e:
+            self.__logger.info(f"Unique violation: {e}")
+            raise HTTPException(status_code=409, detail="Nombre del material duplicado")
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -108,6 +111,9 @@ class MaterialService:
     async def changeThickness(self, thicknessId: str, thickness: Thickness)->None:
         try:
             await self.__postgress.update(MaterialSql.changeThickness.value, thickness.__dict__,thicknessId)
+        except asyncpg.exceptions.UniqueViolationError as e:
+            self.__logger.info(f"Unique violation: {e}")
+            raise HTTPException(status_code=409, detail="Nombre del thickness duplicado")
         except Exception as e:
             self.__logger.info(str(e))
             raise
