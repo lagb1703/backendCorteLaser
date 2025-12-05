@@ -31,5 +31,5 @@ async def deleteFile(id: str, u: Annotated[UserToken, Depends(authService.setUse
     await fileService.deleteFile(id, u)
     
 @router.get("/price")
-async def getPrice(id: str, materialId: str, thicknessId: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getPrice(id, materialId, thicknessId, u)
+async def getPrice(id: str, materialId: str, thicknessId: str, amount: str, u: Annotated[UserToken, Depends(authService.setUser)]):
+    return await fileService.getPrice(id, materialId, thicknessId, int(amount), u)

@@ -65,7 +65,8 @@ class PaymentService:
         fileId: str = mt[0]
         materialId: str = mt[1]
         thicknessId: str = mt[2]
-        price: int = ceil((await self.__fileService.getPrice(fileId, materialId, thicknessId, user)).price)
+        amount: int = int(mt[3])
+        price: int = ceil((await self.__fileService.getPrice(fileId, materialId, thicknessId, amount, user)).price)
         payment.amount_in_cents = price
         result = await self.__wompiWapper.makePayment(payment, user.email)
         payment.id = result.id

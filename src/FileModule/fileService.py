@@ -129,7 +129,8 @@ class FileService:
             raise HTTPException(500, "")
             
     
-    async def getPrice(self, id: str | int, materialId: str, thicknessId: str, user: UserToken)->PriceResponse:
+    async def getPrice(self, id: str | int, materialId: str, thicknessId: str, amount: int, user: UserToken)->PriceResponse:
+        print(amount)
         cost = CostCalculator()
         fileInfo = await self.getFileInfo(id, user)
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
@@ -143,6 +144,6 @@ class FileService:
         if mtId is None:
             raise
         return PriceResponse(
-            price=cost.getPrice(material.price, thickness.price , area, perimeter),
+            price=cost.getPrice(material.price, thickness.price , area, perimeter, amount),
             quoteId=await self.__saveQuote(id, mtId)
         )
