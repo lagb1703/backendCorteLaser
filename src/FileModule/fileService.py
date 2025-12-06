@@ -130,7 +130,6 @@ class FileService:
             
     
     async def getPrice(self, id: str | int, materialId: str, thicknessId: str, amount: int, user: UserToken)->PriceResponse:
-        print(amount)
         cost = CostCalculator()
         fileInfo = await self.getFileInfo(id, user)
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
