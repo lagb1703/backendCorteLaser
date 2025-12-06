@@ -35,7 +35,7 @@ class PaymentService:
         self.__emailClient: EmailClient = EmailClient()
         self.__bussinessEmail: str = e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
         
-    async def __makeDatabsePayment(self, payment: PaymentType, user: UserToken)->str:
+    async def __makeDatabsePayment(self, payment: PaymentType, amount: int, user: UserToken)->str:
         try:
             data: Dict[str, Any] = {
                 "p_id": payment.id,
@@ -61,7 +61,9 @@ class PaymentService:
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         payment.reference += f"@{user.id}"
+        print(payment.reference)
         mt: List[str] = payment.reference.split("@")[0].split("-")
+        print(mt)
         fileId: str = mt[0]
         materialId: str = mt[1]
         thicknessId: str = mt[2]
@@ -71,7 +73,7 @@ class PaymentService:
         result = await self.__wompiWapper.makePayment(payment, user.email)
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
-        await self.__makeDatabsePayment(payment, user)
+        await self.__makeDatabsePayment(payment, amount, user)
         return result.id
     
     async def verifyPayment(self, id: str)->str:
