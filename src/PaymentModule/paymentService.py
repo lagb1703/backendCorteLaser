@@ -103,7 +103,7 @@ class PaymentService:
         reference: str = data["transaction"]["reference"]
         email = data["transaction"]["customer_email"]
         mti, _, userId = reference.split("@")
-        fileId, materialId, thicknessId = mti.split("-")
+        fileId, materialId, thicknessId, amount = mti.split("-")
         user = await self.__userService.getUSerById(userId)
         userToken = UserToken(id=int(userId), email=email, isAdmin=False)
         file = await self.__fileService.getFileInfo(fileId, userToken)
@@ -123,6 +123,7 @@ class PaymentService:
             Detalles:
             - Material: {getattr(material, 'name', material)}
             - Espesor: {getattr(thickness, 'name', thickness)}
+            - Cantidad: {amount}
 
             Tu pedido está siendo procesado y te notificaremos cuando esté listo para descarga o envío.
 
@@ -168,6 +169,7 @@ class PaymentService:
             - Material: {material_name}
             - Id del espesor: {thicknessId}
             - Espesor: {thickness_name}
+            - Cantidad: {amount}
 
             Pago:
             - Referencia: {reference}
