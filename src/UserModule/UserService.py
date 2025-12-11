@@ -70,10 +70,23 @@ class UserService:
     async def getUSerById(self, id: str | int)->User:
         try:
             rows = await self.__postgress.query(UserSql.getUSerById.value, [int(id)])
+            if len(rows) == 0:
+                raise HTTPException(404, "No se ha detectado un usuario valido")
             return User.model_validate(rows[0])
         except Exception as e:
             self.__logger.info(str(e))
             raise
+        
+    async def getUserByEmail(self, email: str)->User:
+        try:
+            rows = await self.__postgress.query(UserSql.getUSerByEmail.value, [email])
+            if len(rows) == 0:
+                raise HTTPException(404, "No se ha detectado un usuario valido")
+            return User.model_validate(rows[0])
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+        
         
     async def changeAddress(self, address: str, user: UserToken)->None:
         try:

@@ -10,6 +10,7 @@ from authlib.integrations.starlette_client import OAuth  # type: ignore
 from authlib.jose.errors import ExpiredTokenError
 import ssl
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import RedirectResponse
 
 if TYPE_CHECKING:
     from src.UserModule.dtos import UserToken
@@ -53,7 +54,7 @@ class AuthService:
         redirect_uri = request.url_for("auth_google_callback")
         return await self.__oauth.google.authorize_redirect(request, redirect_uri) # type: ignore
     
-    async def googleCallBack(self, request: Request)-> str | bytes:
+    async def googleCallBack(self, request: Request):
         try:
             token = await self.__oauth.google.authorize_access_token(request)  # type: ignore
             user_info = token.get("userinfo")  # type: ignore
@@ -63,8 +64,12 @@ class AuthService:
             if not email or not isinstance(email, str):
                 raise HTTPException(status_code=400, detail=ExceptionsEnum.NO_TOKEN.value)
             from src.UserModule.dtos import UserToken
-            t: UserToken = UserToken(id=0, email=email, isAdmin=True)
-            return self.__segurity.getToken(t)
+            e = Enviroment.getInstance()
+            user = await self.__userService.getUserByEmail(email)
+            if user.id is None:
+                raise HTTPException(404, "usuario no encontrado")
+            t: UserToken = UserToken(id=user.id, email=email, isAdmin=user.isAdmin)
+            return RedirectResponse(f"{e.get(EnviromentsEnum.GOOGLE_CALLBACK_URL.value)}?token={str(self.__segurity.getToken(t))}")
 
         except ssl.SSLError as ssl_error:
             raise HTTPException(status_code=400, detail=ExceptionsEnum.SSL_ERROR.value.replace(":error", str(ssl_error)))

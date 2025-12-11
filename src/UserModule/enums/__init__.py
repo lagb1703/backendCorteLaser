@@ -38,6 +38,19 @@ class UserSql(Enum):
         FROM "USER"."TB_USU_USERS" utuu
         WHERE utuu."userId" = $1
     """
+    getUSerByEmail= """
+        SELECT 
+            utuu."userId" as "id",
+            utuu.names as "names",
+            utuu."lastNames" as "lastNames",
+            utuu.email as "email",
+            utuu.address as "address",
+            utuu.password as "password",
+            utuu.phone as "phone",
+            utuu."isAdmin" as "isAdmin"
+        FROM "USER"."TB_USU_USERS" utuu
+        WHERE utuu.email = $1
+    """
     changeAddress = """
         call "USER"."SP_USU_USERPKG_EDITARADDRESSUSUARIO"($1,$2)
     """
