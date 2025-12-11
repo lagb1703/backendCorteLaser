@@ -87,6 +87,7 @@ class FileService:
         except ValueError as e:
             raise HTTPException(400, str(e))
         except UniqueViolationError as e:
+            print(e)
             raise HTTPException(status_code=409, detail=ExceptionsEnum.DUPLICATED_FILE.value)
         except HTTPException as e:            raise
     

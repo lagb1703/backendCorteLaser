@@ -12,6 +12,8 @@ from shapely.affinity import scale
 from ezdxf.filemanagement import read # type: ignore
 from ezdxf.lldxf.const import DXFStructureError # type: ignore
 from ezdxf_shapely import convert_all, polygonize # type: ignore
+from ezdxf import path
+from shapely.geometry import LineString
 
 class ShapelyAnalizer(GeometriesAnaliser):
     
@@ -111,14 +113,24 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
 
         msp = doc.modelspace()
-        p = convert_all(msp)
+        print("1")
+        geoms:List[LineString] = []
+        for entity in msp:
+            try:
+                p_path = path.make_path(entity)
+                vertices = list(p_path.flattening(distance=0.01))
+                if len(vertices) > 1:
+                    geoms.append(LineString(vertices))
+            except Exception:
+                continue
+        print("2")
         units = doc.units
         if units == 0:
             raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "falta de unidades de medida"))
         convertFactor = DxfAdapter.unitsToMeters.get(units)
         if convertFactor is None:
             raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "unidad desconocida"))
-        polygons = list(polygonize(p))
+        polygons = list(polygonize(geoms))
         return [scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0,0)) for poly in polygons]
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
