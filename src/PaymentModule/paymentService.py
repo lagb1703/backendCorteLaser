@@ -61,9 +61,7 @@ class PaymentService:
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         payment.reference += f"@{user.id}"
-        print(payment.reference)
         mt: List[str] = payment.reference.split("@")[0].split("-")
-        print(mt)
         fileId: str = mt[0]
         materialId: str = mt[1]
         thicknessId: str = mt[2]
@@ -182,7 +180,6 @@ class PaymentService:
             Sistema de notificaciones
             """)
             await self.__emailClient.send(email)
-            print("Notificación al administrador enviada: ", self.__bussinessEmail)
             return
         email = EmailMessage()
         email["To"] = user.email
@@ -199,6 +196,4 @@ class PaymentService:
         Equipo de soporte
         """)
         await self.__emailClient.send(email)
-        print(data)
-        print(status, reference, email)
         return

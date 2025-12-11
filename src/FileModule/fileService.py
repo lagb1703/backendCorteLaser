@@ -67,7 +67,6 @@ class FileService:
                     "fileId":fileId,
                     "mtId":mtId
                 }))
-            print(id)
             return id["p_id"]
         except Exception as e:
             self.__logger.info(str(e))

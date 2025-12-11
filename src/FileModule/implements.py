@@ -113,7 +113,6 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
 
         msp = doc.modelspace()
-        print("1")
         geoms:List[LineString] = []
         for entity in msp:
             try:
@@ -123,7 +122,6 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                     geoms.append(LineString(vertices))
             except Exception:
                 continue
-        print("2")
         units = doc.units
         if units == 0:
             raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "falta de unidades de medida"))
