@@ -6,16 +6,19 @@ class CmrService:
     __instance = None
     
     @staticmethod
-    def getInstance():
+    def getInstance()-> 'CmrService':
         if CmrService.__instance is None:
-            CmrService()
+            CmrService.__instance = CmrService()
         return CmrService.__instance
     
     def __init__(self):
         self.cmr: CmrApi = Bitrix24()
         
-    def addNewCustomer(self, user: User):
-        return self.cmr.createNewCustomer(user)
+    async def addNewCustomer(self, user: User)->str:
+        client: User | None = await self.cmr.searchCustomerByDocument(user.identification)
+        if client is None:
+            return ''
+        return await self.cmr.createNewCustomer(user)
     
-    def updateCustomer(self, user: User, document: str):
-        return self.cmr.updateCustomer(user, document)
+    async def updateCustomer(self, user: User, document: str):
+        return await self.cmr.updateCustomer(user, document)

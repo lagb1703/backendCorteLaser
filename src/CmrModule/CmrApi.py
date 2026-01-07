@@ -5,23 +5,23 @@ import httpx
 class CmrApi(ABC):
     
     @abstractmethod
-    def createNewCustomer(self, user: User)->str:
+    async def createNewCustomer(self, user: User)->str:
         pass
     
     @abstractmethod
-    def searchCustomerByDocument(self, document: str)->User:
+    async def searchCustomerByDocument(self, document: str)->User | None:
         pass
     
     @abstractmethod
-    def updateCustomer(self, user: User, document: str)->None:
+    async def updateCustomer(self, user: User, document: str)->None:
         pass
     
 class Bitrix24(CmrApi):
     
-    def createNewCustomer(self, user: User)->str:
+    async def createNewCustomer(self, user: User)->str:
         return ''
     
-    def searchCustomerByDocument(self, document: str)->User:
+    async def searchCustomerByDocument(self, document: str)->User | None:
         return User(
             names='',
             lastNames='',
@@ -35,5 +35,5 @@ class Bitrix24(CmrApi):
             identificationType=''
         )
     
-    def updateCustomer(self, user: User, document: str)->None:
+    async def updateCustomer(self, user: User, document: str)->None:
         return None

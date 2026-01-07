@@ -5,6 +5,7 @@ from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
 from typing import List
 from src.utils.EmailClient import EmailClient
+from src.CmrModule.CmrService import CmrService
 from email.message import EmailMessage
 from asyncpg.exceptions import UniqueViolationError # type: ignore
 
@@ -23,6 +24,7 @@ class UserService:
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         self.__logger = logging.getLogger("UserService")
         self.__emailClient: EmailClient = EmailClient()
+        self.__cmrService: CmrService = CmrService.getInstance()
         
     async def login(self, userName: str, password: str)->UserToken:
         try:
@@ -49,6 +51,7 @@ class UserService:
             email["Subject"] = "Bienvenido a CorteLazer"
             email.set_content("Recientemente se ha incrito una cuenta a nombre de este correo, si no ha sido usted, porfavor, responda este correo")
             await self.__emailClient.send(email)
+            await self.__cmrService.addNewCustomer(user)
             return True
         except HTTPException as e:
             raise
