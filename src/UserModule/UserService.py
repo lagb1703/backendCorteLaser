@@ -42,6 +42,7 @@ class UserService:
 
     async def register(self, user: User)->bool:
         try:
+            print(user)
             user.password = sha256(user.password.encode('utf-8')).hexdigest()
             id: int | str | None = (await self.__postgress.save(UserSql.register.value, user.__dict__))["p_id"]
             if id is None:

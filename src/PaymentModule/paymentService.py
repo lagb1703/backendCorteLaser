@@ -5,7 +5,6 @@ from src.PaymentModule.wompiWapper import WompiWapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
 from typing import List, Dict, Any
 from fastapi import Response, Request
-from math import ceil
 from src.PaymentModule.enums import PaymentStatus, PaymentSql
 from src.MaterialModule.materialService import MaterialService
 from src.utils.EmailClient import EmailClient
@@ -60,18 +59,16 @@ class PaymentService:
         return await self.__wompiWapper.getAcceptanceTokens()
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
-        payment.reference += f"@{user.id}"
-        mt: List[str] = payment.reference.split("@")[0].split("-")
-        fileId: str = mt[0]
-        materialId: str = mt[1]
-        thicknessId: str = mt[2]
-        amount: int = int(mt[3])
-        price: int = ceil((await self.__fileService.getPrice(fileId, materialId, thicknessId, amount, user)).price)
+        payment.userId = user.id
+        price = 0
+        for r in payment.reference:
+            print(r)
+        # price: int = ceil((await self.__fileService.getPrice(fileId, materialId, thicknessId, amount, user)).price)
         payment.amount_in_cents = price
         result = await self.__wompiWapper.makePayment(payment, user.email)
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
-        await self.__makeDatabsePayment(payment, amount, user)
+        # await self.__makeDatabsePayment(payment, 0, user)
         return result.id
     
     async def verifyPayment(self, id: str)->str:

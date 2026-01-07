@@ -4,6 +4,12 @@ from fastapi import HTTPException
 from src.PaymentModule.enums import ExceptionsEnum
 import re
 
+class ReferenceType(BaseModel):
+    materialId: Annotated[str, Field(examples=["1"])]
+    thicknessId: Annotated[str, Field(examples=["1"])]
+    fileId: Annotated[str, Field(examples=["1"])]
+    amount: Annotated[int, Field(examples=[1])]
+
 class PaymentTypeResponse(BaseModel):
     id: str
     created_at: str
@@ -47,7 +53,8 @@ class PaymentType(BaseModel):
     amount_in_cents: Optional[Annotated[int, Field(examples=[150000])]] = None
     payment_method: PaymentMethodWompi
     card: Optional[WompiTokenizerType]
-    reference: str
+    reference: ReferenceType
+    userId: Optional[str | int] = None
     @model_validator(mode="after")
     def check_card_consistency(self):
         if self.payment_method.type == "CARD" and self.card is None:

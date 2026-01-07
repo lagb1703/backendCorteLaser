@@ -9,10 +9,10 @@ class User(BaseModel):
     address: str
     password: str
     phone: int
-    isAdmin: bool
+    isAdmin: Optional[bool] = False
     identification: str
     identificationTypeId: int | str
-    identificationType: str
+    identificationType: Optional[str] = None
     
 class UserToken(BaseModel):
     id: int

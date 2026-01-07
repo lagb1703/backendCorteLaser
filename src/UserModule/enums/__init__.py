@@ -23,8 +23,13 @@ class UserSql(Enum):
             utuu.address as "address",
             utuu.password as "password",
             utuu.phone as "phone",
-            utuu."isAdmin" as "isAdmin"
+            utuu."isAdmin" as "isAdmin",
+            utuu."identification" as "identification",
+            utuu."identificationTypeId" as "identificationTypeId",
+            utuit."type" as "identificationType"
         FROM "USER"."TB_USU_USERS" utuu
+        LEFT JOIN "USER"."TB_USER_IDENTIFICATION_TYPES" utuit 
+            ON utuit."identificationTypeId" = utuu."identificationTypeId"
     """
     getUSerById= """
         SELECT 
@@ -34,8 +39,13 @@ class UserSql(Enum):
             utuu.address as "address",
             utuu.password as "password",
             utuu.phone as "phone",
-            utuu."isAdmin" as "isAdmin"
+            utuu."isAdmin" as "isAdmin",
+            utuu."identification" as "identification",
+            utuu."identificationTypeId" as "identificationTypeId",
+            utuit."type" as "identificationType"
         FROM "USER"."TB_USU_USERS" utuu
+        LEFT JOIN "USER"."TB_USER_IDENTIFICATION_TYPES" utuit 
+            ON utuit."identificationTypeId" = utuu."identificationTypeId"
         WHERE utuu."userId" = $1
     """
     getUSerByEmail= """
@@ -47,8 +57,13 @@ class UserSql(Enum):
             utuu.address as "address",
             utuu.password as "password",
             utuu.phone as "phone",
-            utuu."isAdmin" as "isAdmin"
+            utuu."isAdmin" as "isAdmin",
+            utuu."identification" as "identification",
+            utuu."identificationTypeId" as "identificationTypeId",
+            utuit."type" as "identificationType"
         FROM "USER"."TB_USU_USERS" utuu
+        LEFT JOIN "USER"."TB_USER_IDENTIFICATION_TYPES" utuit 
+            ON utuit."identificationTypeId" = utuu."identificationTypeId"
         WHERE utuu.email = $1
     """
     changeAddress = """

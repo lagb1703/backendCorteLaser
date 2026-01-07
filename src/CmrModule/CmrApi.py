@@ -25,7 +25,7 @@ class Bitrix24(CmrApi):
         return User(
             names='',
             lastNames='',
-            email='',
+            email='l@l.com',
             address='',
             password='',
             phone=0,
