@@ -10,6 +10,9 @@ class User(BaseModel):
     password: str
     phone: int
     isAdmin: bool
+    identification: str
+    identificationTypeId: int | str
+    identificationType: str
     
 class UserToken(BaseModel):
     id: int

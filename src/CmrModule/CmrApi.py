@@ -17,4 +17,23 @@ class CmrApi(ABC):
         pass
     
 class Bitrix24(CmrApi):
-    pass
+    
+    def createNewCustomer(self, user: User)->str:
+        return ''
+    
+    def searchCustomerByDocument(self, document: str)->User:
+        return User(
+            names='',
+            lastNames='',
+            email='',
+            address='',
+            password='',
+            phone=0,
+            isAdmin=False,
+            identification='',
+            identificationTypeId='',
+            identificationType=''
+        )
+    
+    def updateCustomer(self, user: User, document: str)->None:
+        return None
