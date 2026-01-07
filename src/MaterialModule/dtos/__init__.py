@@ -6,6 +6,7 @@ class Material(BaseModel):
     materialId: Optional[str | int] = None
     name: str
     price: int
+    weight: float
     lastModification: Optional[datetime] = None
     
 class Thickness(BaseModel):
