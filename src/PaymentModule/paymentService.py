@@ -13,7 +13,7 @@ from json import loads
 from src.UserModule.UserService import UserService
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
-
+import uuid
 class PaymentService:
     
     __instance: 'PaymentService | None' = None
@@ -40,6 +40,7 @@ class PaymentService:
                 "p_id": payment.id,
                 "status": payment.status,
                 "reference": payment.reference,
+                "items": [r.model_dump() for r in payment.items],
                 "paymentMethodId": payment.paymentMethodId
             }
             return (await self.__postgress.save(PaymentSql.savePayment.value, data))["p_id"]
@@ -60,15 +61,16 @@ class PaymentService:
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         payment.userId = user.id
-        price = 0
-        for r in payment.reference:
-            print(r)
-        # price: int = ceil((await self.__fileService.getPrice(fileId, materialId, thicknessId, amount, user)).price)
-        payment.amount_in_cents = price
+        payment.reference = uuid.uuid4().hex
+        price = 150000
+        for i in payment.items:
+            filePrice = await self.__fileService.getPrice(i.fileId, i.materialId, i.thicknessId, i.amount, user)
+            price += int(filePrice.price)
+        payment.amount_in_cents = int(price)
         result = await self.__wompiWapper.makePayment(payment, user.email)
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
-        # await self.__makeDatabsePayment(payment, 0, user)
+        await self.__makeDatabsePayment(payment, price, user)
         return result.id
     
     async def verifyPayment(self, id: str)->str:

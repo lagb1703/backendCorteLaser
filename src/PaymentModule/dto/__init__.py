@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator, Field
-from typing import Literal, Optional, Annotated
+from typing import Literal, Optional, Annotated, List
 from fastapi import HTTPException
 from src.PaymentModule.enums import ExceptionsEnum
 import re
@@ -53,7 +53,8 @@ class PaymentType(BaseModel):
     amount_in_cents: Optional[Annotated[int, Field(examples=[150000])]] = None
     payment_method: PaymentMethodWompi
     card: Optional[WompiTokenizerType]
-    reference: ReferenceType
+    reference: Optional[str] = None 
+    items: List[ReferenceType]
     userId: Optional[str | int] = None
     @model_validator(mode="after")
     def check_card_consistency(self):
