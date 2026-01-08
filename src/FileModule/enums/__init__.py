@@ -9,6 +9,19 @@ class FolderName(Enum):
     ORIGINAL = "original"
     WKB = "WKB"
     
+class CostSql(Enum):
+    getPrice="""
+        SELECT 
+            PTPC."costId" as "costId",
+            PTPC."estimatec" as "estimatec",
+        FROM "PAYMENT"."TB_PAYMENT_COST" PTPC
+        ORDER BY date DESC LIMIT 1
+    """
+    
+    newEstimate="""
+        call "PAYMENT"."SP_PA_PAYMENTPKG_AGREGARNUEVOCOSTO"($1, $2)
+    """
+    
 class FileSql(Enum):
     getFileById="""
         SELECT 

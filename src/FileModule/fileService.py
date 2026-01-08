@@ -1,7 +1,7 @@
 from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator
 from src.FileModule.storageService import StorageService
 from src.FileModule.enums import ExceptionsEnum, FileSql, FolderName
-from src.FileModule.costCalculator import CostCalculator
+from src.FileModule.costService import CostService
 from src.MaterialModule.materialService import MaterialService
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
@@ -29,6 +29,7 @@ class FileService:
         self.__creator: GeometryAnaliserCreator = GeometryAnaliserCreator.getInstance()
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         self.__materialService: MaterialService = MaterialService.getInstance()
+        self.__costService: CostService = CostService.getInstance()
         self.__logger = logging.getLogger("FileService")
         
     def __single_result_or_http_error(self, rows: List[Dict[str, Any]] | None, not_found_message: str = "Recurso no encontrado") -> Dict[str, Any]:
@@ -130,7 +131,6 @@ class FileService:
             
     
     async def getPrice(self, id: str | int, materialId: str, thicknessId: str, amount: int, user: UserToken)->PriceResponse:
-        cost = CostCalculator()
         fileInfo = await self.getFileInfo(id, user)
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
@@ -143,6 +143,12 @@ class FileService:
         if mtId is None:
             raise
         return PriceResponse(
-            price=cost.getPrice(material.price, thickness.price , area, perimeter, amount),
+            price=await self.__costService.getPrice(material.price, thickness.price, area, material.weight, perimeter, amount),
             quoteId=await self.__saveQuote(id, mtId)
         )
+    
+    async def setPriceCalculator(self, exp: str) -> None:
+        await self.__costService.setPriceCalculator(exp)
+    
+    async def getPriceEstimate(self)->str:
+        return await self.__costService.getPriceEstimate()
