@@ -12,6 +12,12 @@ class UserSql(Enum):
         FROM "USER"."TB_USU_USERS" utuu
         WHERE utuu.email = $1 and utuu.password = $2
     """
+    getAllIdentificationTypes= """
+        SELECT 
+            utuit."identificationTypeId" as "identificationTypeId",
+            utuit."type" as "type"
+        FROM "USER"."TB_USER_IDENTIFICATION_TYPES" utuit
+    """
     register= """
         call "USER"."SP_USU_USERPKG_AGREGARUSUARIO"($1, $2)
     """

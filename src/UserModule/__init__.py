@@ -39,3 +39,10 @@ async def getUserById(userId: int, _: Annotated[UserToken, Depends(authService.s
 @router.patch("/address/{address}")
 async def changeAddress(user: Annotated[UserToken, Depends(authService.setUser)], address: str = "")->None:
     return await userService.changeAddress(address, user)
+
+@router.get("/identificationTypes")
+async def getAllIdentificationTypes():
+    """
+    Obtiene todos los tipos de identificación. Requiere autenticación.
+    """
+    return await userService.getAllIdentificationTypes()

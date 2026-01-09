@@ -19,3 +19,6 @@ class UserToken(BaseModel):
     email: str
     isAdmin: Optional[bool]
     
+class IdentificationType(BaseModel):
+    identificationTypeId: str | int
+    type: str

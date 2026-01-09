@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from src.utils.PostgressClient import PostgressClient
-from src.UserModule.dtos import User, UserToken
+from src.UserModule.dtos import User, UserToken, IdentificationType
 from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
 from typing import List
@@ -100,3 +100,12 @@ class UserService:
         except Exception as e:
             self.__logger.info(str(e))
             raise
+        
+    async def getAllIdentificationTypes(self)->List[IdentificationType]:
+        try:
+            rows = await self.__postgress.query(UserSql.getAllIdentificationTypes.value, [])
+            identificationTypes: List[IdentificationType] = [IdentificationType.model_validate(r) for r in rows]
+            return identificationTypes
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise 
