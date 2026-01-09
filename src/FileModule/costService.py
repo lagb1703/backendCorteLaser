@@ -21,12 +21,13 @@ class CostService:
     
     async def __setEstimate(self, exp: str) -> None:
         data: Dict[str, str] = {
-            'estimatec': exp
+            'estimatic': exp
         }
+        print(data)
         await self.__postgressClient.save(CostSql.newEstimate.value, data)
     
     async def getPriceEstimate(self) -> str:
-        return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0]['estimatec']
+        return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0]['estimatic'].replace('\"', '')
     
     async def getPrice(self, materialPrice: float, thicknessPrice: float, area: float, weight: float, perimeter: float, amount: int) -> float:
         if self.tree is None:
@@ -42,7 +43,8 @@ class CostService:
                 "amount": amount
             }
             evaluator = AstEval(names)
-            return evaluator.visit(self.tree)
+            result = evaluator.visit(self.tree.body)
+            return result
         except Exception:
             raise
     

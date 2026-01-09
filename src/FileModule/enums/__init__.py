@@ -13,7 +13,7 @@ class CostSql(Enum):
     getPrice="""
         SELECT 
             PTPC."costId" as "costId",
-            PTPC."estimatec" as "estimatec",
+            PTPC."estimatec" as "estimatic"
         FROM "PAYMENT"."TB_PAYMENT_COST" PTPC
         ORDER BY date DESC LIMIT 1
     """
