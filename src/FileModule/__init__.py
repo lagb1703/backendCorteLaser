@@ -18,6 +18,10 @@ async def getAllUserInfoFiles(u: Annotated[UserToken, Depends(authService.setUse
 async def saveFile(file: UploadFile, u: Annotated[UserToken, Depends(authService.setUser)]):
     return await fileService.saveFile(file, u)
 
+@router.get("/metadata")
+async def getFileMetadata(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
+    return await fileService.getFileInfo(id, u)
+
 @router.get("/donwload")
 async def getFile(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
     return await fileService.getFile(id, u)

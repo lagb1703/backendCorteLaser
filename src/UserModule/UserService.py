@@ -52,7 +52,7 @@ class UserService:
             email["Subject"] = "Bienvenido a CorteLazer"
             email.set_content("Recientemente se ha incrito una cuenta a nombre de este correo, si no ha sido usted, porfavor, responda este correo")
             await self.__emailClient.send(email)
-            await self.__cmrService.addNewCustomer(user)
+            # await self.__cmrService.addNewCustomer(user)
             return True
         except HTTPException as e:
             raise
