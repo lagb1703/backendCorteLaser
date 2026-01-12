@@ -9,7 +9,8 @@ class MaterialSql(Enum):
             mtmm."materialId" as "materialId",
             mtmm.name as "name",
             mtmm.price as "price",
-            mtmm."lastmodification" AS "lastModification"
+            mtmm."lastmodification" AS "lastModification",
+            mtmm.weight as "weight"
         FROM "MATERIAL"."TB_MATERIAL_MATERIALS" mtmm
         WHERE mtmm."deleted" = false
     """
