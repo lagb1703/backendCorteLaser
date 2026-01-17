@@ -13,6 +13,7 @@ from io import BytesIO
 import hashlib
 import logging
 from asyncpg.exceptions import UniqueViolationError # type: ignore
+from math import ceil
 
 class FileService:
     
@@ -142,8 +143,12 @@ class FileService:
         thickness = await self.__materialService.getThicknessById(thicknessId)
         if mtId is None:
             raise
+        price = await self.__costService.getPrice(material.price, thickness.price, area, material.weight, perimeter, amount)
+        price = ceil(price * 100) / 100
+        price = max(price, 1500)
+        print(price)
         return PriceResponse(
-            price=await self.__costService.getPrice(material.price, thickness.price, area, material.weight, perimeter, amount),
+            price=price,
             quoteId=await self.__saveQuote(id, mtId)
         )
     

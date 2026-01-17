@@ -62,11 +62,12 @@ class PaymentService:
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         payment.userId = user.id
         payment.reference = uuid.uuid4().hex
-        price = 150000
+        price = 0
         for i in payment.items:
             filePrice = await self.__fileService.getPrice(i.fileId, i.materialId, i.thicknessId, i.amount, user)
-            price += int(filePrice.price)
-        payment.amount_in_cents = int(price)
+            price += filePrice.price
+        price = int(price * 100)
+        payment.amount_in_cents = price
         result = await self.__wompiWapper.makePayment(payment, user.email)
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
