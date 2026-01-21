@@ -22,19 +22,25 @@ class PostgressClient:
         
     async def connect(self) -> None:
         """Inicializa el pool de conexiones de forma asíncrona"""
-        if self.pool is None:
-            envarioment: Enviroment = Enviroment.getInstance()
-            user: str = envarioment.get(EnviromentsEnum.DB_USER.value)
-            password: str = envarioment.get(EnviromentsEnum.DB_PASSWORD.value)
-            host: str = envarioment.get(EnviromentsEnum.DB_HOST.value)
-            port: str = envarioment.get(EnviromentsEnum.DB_PORT.value)
-            db: str = envarioment.get(EnviromentsEnum.DB_NAME.value)
-            self.pool = await create_pool(  # type: ignore
-                dsn=f"postgres://{user}:{password}@{host}:{port}/{db}",
-                min_size=1,
-                max_size=10,
-                max_inactive_connection_lifetime=300,
-            )
+        try:
+            if self.pool is None:
+                print("Conectando a la base de datos...")
+                envarioment: Enviroment = Enviroment.getInstance()
+                user: str = envarioment.get(EnviromentsEnum.DB_USER.value)
+                password: str = envarioment.get(EnviromentsEnum.DB_PASSWORD.value)
+                host: str = envarioment.get(EnviromentsEnum.DB_HOST.value)
+                port: str = envarioment.get(EnviromentsEnum.DB_PORT.value)
+                db: str = envarioment.get(EnviromentsEnum.DB_NAME.value)
+                self.pool = await create_pool(  # type: ignore
+                    dsn=f"postgres://{user}:{password}@{host}:{port}/{db}",
+                    min_size=1,
+                    max_size=10,
+                    max_inactive_connection_lifetime=300,
+                )
+                print("Conexión a la base de datos establecida.")
+        except Exception as e:
+            print(f"Error al conectar a la base de datos: {e}")
+            self.pool = None
         
     async def query(self, sql: str, data: List[Any] = []) -> list[Dict[str, Any]]:
         """Ejecuta una consulta y retorna múltiples registros"""
