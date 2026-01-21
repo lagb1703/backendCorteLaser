@@ -4,6 +4,7 @@
 ### Mio ###
 credentials/
 *.dxf
+backup.sql
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
