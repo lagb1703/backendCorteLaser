@@ -79,6 +79,7 @@ class MaterialService:
     
     async def addNewMaterial(self, material: Material)->str | int:
         try:
+            material.weight = int(material.weight)
             return (await self.__postgress.save(MaterialSql.addNewMaterial.value, material.__dict__))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
@@ -100,6 +101,7 @@ class MaterialService:
     
     async def changeMaterial(self, materialId: str, material: Material)->None:
         try:
+            material.weight = int(material.weight)
             await self.__postgress.update(MaterialSql.changeMaterial.value, material.__dict__,materialId)
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")

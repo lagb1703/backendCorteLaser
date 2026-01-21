@@ -42,7 +42,7 @@ origins = [
     "http://localhost",
     "http://localhost:3000", 
     "http://localhost:3001",  
-    "https://solid-orbit-wrrq9pvpvrjf9p44-5174.app.github.dev",
+    "https://solid-orbit-wrrq9pvpvrjf9p44-5173.app.github.dev",
 ]
 
 e = Enviroment.getInstance()
