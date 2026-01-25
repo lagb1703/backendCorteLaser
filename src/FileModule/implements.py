@@ -11,7 +11,7 @@ from typing import Tuple
 from shapely.affinity import scale
 from ezdxf.filemanagement import read # type: ignore
 from ezdxf.lldxf.const import DXFStructureError # type: ignore
-from ezdxf_shapely import convert_all, polygonize # type: ignore
+from ezdxf_shapely import polygonize # type: ignore
 from ezdxf import path
 from shapely.geometry import LineString
 
@@ -111,7 +111,6 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         buf.close()
                     except Exception:
                         pass
-
         msp = doc.modelspace()
         geoms:List[LineString] = []
         for entity in msp:
@@ -128,7 +127,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
         convertFactor = DxfAdapter.unitsToMeters.get(units)
         if convertFactor is None:
             raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "unidad desconocida"))
-        polygons = list(polygonize(geoms))
+        polygons = polygonize(geoms, coerce_ends=True, coercion_distance=0.01)
         return [scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0,0)) for poly in polygons]
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
