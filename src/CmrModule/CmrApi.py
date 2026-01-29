@@ -41,10 +41,12 @@ class Bitrix24(CmrApi):
                 self.__customIdField: user.identification,  # Custom field for identification
             }
         }
+        print(data)
         async with httpx.AsyncClient(timeout=15.0) as client:
             resoponse = await client.post(url, json=data)
             if resoponse.status_code == 200:
                 respData = resoponse.json()
+                print(respData)
                 return str(respData.get("result", ""))
         return ''
     

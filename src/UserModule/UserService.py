@@ -42,7 +42,6 @@ class UserService:
 
     async def register(self, user: User)->bool:
         try:
-            print(user)
             user.password = sha256(user.password.encode('utf-8')).hexdigest()
             id: int | str | None = (await self.__postgress.save(UserSql.register.value, user.__dict__))["p_id"]
             if id is None:
@@ -52,7 +51,7 @@ class UserService:
             email["Subject"] = "Bienvenido a CorteLazer"
             email.set_content("Recientemente se ha incrito una cuenta a nombre de este correo, si no ha sido usted, porfavor, responda este correo")
             await self.__emailClient.send(email)
-            # await self.__cmrService.addNewCustomer(user)
+            await self.__cmrService.addNewCustomer(user)
             return True
         except HTTPException as e:
             raise
