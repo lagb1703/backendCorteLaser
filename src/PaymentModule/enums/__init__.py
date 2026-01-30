@@ -27,17 +27,21 @@ class PaymentSql(Enum):
             ptpp."paymentMethodId" as "paymentMethodId",
             ptppm."paymentMethod" as "paymentMethod"
         FROM "FILE"."TB_FILE_FILES" ftff
-        RIGHT JOIN "FILE"."TB_FILE_MTFILES" ftfmf
-            ON ftfmf."fileId" = ftff."fileId"
-        RIGHT JOIN "PAYMENT"."TB_PAYMENT_MTPAYMENT" ptpmp
-            ON ptpmp."mtId" = ftfmf."mtId"
-        LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTS" ptpp
+        INNER JOIN "PAYMENT"."TB_PAYMENT_MTPAYMENT" ptpmp
+            ON ptpmp."file" = ftff."fileId"
+        INNER JOIN "PAYMENT"."TB_PAYMENT_PAYMENTS" ptpp
             ON ptpp."paymentId" = ptpmp."paymentId"
         LEFT JOIN "PAYMENT"."TB_PAYMENT_PAYMENTSMETHODS" ptppm
             ON ptppm."paymentMethodId" = ptpp."paymentMethodId"
         WHERE ftff."userId" = $1
         GROUP BY ptpp."paymentId", ptppm."paymentMethodId", ptppm."paymentMethod"
         ORDER BY ptpp."createdAt" DESC
+    """
+    getPaymentInfoByReference="""
+        SELECT 
+            * 
+        FROM 
+        "PAYMENT"."FU_PA_PAYMENTPKG_GETPAYMENTINFOBYREFERENCE"($1)
     """
     savePayment="""
         call "PAYMENT"."SP_PA_PAYMENTPKG_AGREGARPAYMENT"($1, $2)

@@ -6,11 +6,10 @@ from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentTy
 from typing import List, Dict, Any
 from fastapi import Response, Request
 from src.PaymentModule.enums import PaymentStatus, PaymentSql
-from src.MaterialModule.materialService import MaterialService
 from src.utils.EmailClient import EmailClient
+from src.CmrModule.CmrService import CmrService
 from email.message import EmailMessage
-from json import loads
-from src.UserModule.UserService import UserService
+from json import loads, dumps
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 import uuid
@@ -29,10 +28,24 @@ class PaymentService:
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         self.__fileService: FileService = FileService.getInstance()
         self.__wompiWapper: WompiWapper = WompiWapper()
-        self.__materialService: MaterialService = MaterialService.getInstance()
-        self.__userService: UserService = UserService.getInstance()
         self.__emailClient: EmailClient = EmailClient()
         self.__bussinessEmail: str = e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
+        self.__cmrService: CmrService = CmrService.getInstance()
+        
+    async def __getPaymentInfoByReference(self, reference: str)->Dict[str, Any]:
+        rows = await self.__postgress.query(PaymentSql.getPaymentInfoByReference.value, [reference])
+        if not rows:
+            return {}
+        raw = rows[0].get("FU_PA_PAYMENTPKG_GETPAYMENTINFOBYREFERENCE")
+        if raw is None:
+            return {}
+        if isinstance(raw, str):
+            try:
+                return loads(raw)
+            except Exception:
+                return {}
+        # Si ya es JSON/objeto, devolver tal cual
+        return raw
         
     async def __makeDatabsePayment(self, payment: PaymentType, amount: int, user: UserToken)->str:
         try:
@@ -43,6 +56,7 @@ class PaymentService:
                 "items": [r.model_dump() for r in payment.items],
                 "paymentMethodId": payment.paymentMethodId
             }
+            print(dumps(data))
             return (await self.__postgress.save(PaymentSql.savePayment.value, data))["p_id"]
         except Exception as e:
             print(e)
@@ -94,34 +108,57 @@ class PaymentService:
             raise
     
     async def webhook(self, request: Request, response: Response)->None:
+        print("Received webhook")
         response.status_code = 200
         body = await request.body()
         data = loads(body)["data"]
+        if(data is None or "transaction" not in data):
+            return
+        print(data)
         status = data["transaction"]["status"]
         reference: str = data["transaction"]["reference"]
-        email = data["transaction"]["customer_email"]
-        mti, _, userId = reference.split("@")
-        fileId, materialId, thicknessId, amount = mti.split("-")
-        user = await self.__userService.getUSerById(userId)
-        userToken = UserToken(id=int(userId), email=email, isAdmin=False)
-        file = await self.__fileService.getFileInfo(fileId, userToken)
+        email_customer = data["transaction"]["customer_email"]
         if status == PaymentStatus.APPROVED.value:
-            material = await self.__materialService.getMaterialById(materialId)
-            thickness = await self.__materialService.getThicknessById(thicknessId)
+            paymentInfo: Dict[str, Any] = await self.__getPaymentInfoByReference(reference)
+            print("paymentInfo raw:", paymentInfo)
+            items: List[Dict[str, Any]] = paymentInfo.get("items") or []
+            if isinstance(items, str):
+                try:
+                    items = loads(items)
+                except Exception:
+                    items = []
+            if isinstance(items, dict):
+                items = [items]
+
+            # Normalizar user(s)
+            users: List[Dict[str, Any]] = paymentInfo.get("user") or []
+            if isinstance(users, str):
+                try:
+                    users = loads(users)
+                except Exception:
+                    users = []
+            if isinstance(users, dict):
+                users = [users]
+            if len(users) == 0 or len(items) == 0:
+                return
+            details = ""
+            for info in items:
+                name = info.get("name")
+                fileId = info.get("fileId")
+                materialName = info.get("materialName")
+                thicknessName = info.get("thicknessName")
+                amount_i = info.get("amount")
+                details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
             email = EmailMessage()
-            email["To"] = user.email
+            email["To"] = email_customer
             email["Subject"] = "Pago exitoso — Confirmación de pago"
             email.set_content(f"""
-            Hola,
-
-            Hemos recibido exitosamente el pago del archivo "{file.name}".
+            Hola.
             Referencia de la transacción: {reference}
             Estado: {status}
 
             Detalles:
-            - Material: {getattr(material, 'name', material)}
-            - Espesor: {getattr(thickness, 'name', thickness)}
-            - Cantidad: {amount}
+            {details}
 
             Tu pedido está siendo procesado y te notificaremos cuando esté listo para descarga o envío.
 
@@ -131,62 +168,14 @@ class PaymentService:
             Equipo de soporte
             """)
             await self.__emailClient.send(email)
-            email = EmailMessage()
-            # Enviar email al administrador con toda la información del usuario y del archivo
-            email["To"] = self.__bussinessEmail
-            email["Subject"] = "Nueva compra realizada — Detalles del usuario y archivo"
-            user_name = f"{user.names} {user.lastNames}"
-            user_email = getattr(user, "email", userId)
-            user_address = user.address
-            user_id = getattr(user, "id", userId)
-            file_name = getattr(file, "name", "N/A")
-            file_price = data["transaction"]["amount_in_cents"]
-            phone = user.phone
-            material_name = getattr(material, "name", material)
-            thickness_name = getattr(thickness, "name", thickness)
-
-            email.set_content(f"""
-            Hola,
-
-            Se ha registrado una nueva compra. A continuación todos los detalles disponibles:
-
-            Usuario:
-            - ID: {user_id}
-            - Nombre: {user_name}
-            - Email: {user_email}
-            - Dirección: {user_address}
-            - Telefono: {phone}
-
-            Archivo:
-            - ID: {fileId}
-            - Nombre: {file_name}
-            - Precio (archivo): {file_price}
-
-            Material y espesor:
-            - Id del glosor: {materialId}
-            - Material: {material_name}
-            - Id del espesor: {thicknessId}
-            - Espesor: {thickness_name}
-            - Cantidad: {amount}
-
-            Pago:
-            - Referencia: {reference}
-            - Estado: {status}
-            - Datos completos de la transacción: {str(data)}
-
-            Por favor revisa la orden y procede según corresponda.
-
-            Atentamente,
-            Sistema de notificaciones
-            """)
-            await self.__emailClient.send(email)
+            await self.__cmrService.addTask(paymentInfo)
             return
         email = EmailMessage()
-        email["To"] = user.email
-        email["Subject"] = "Probemas con el pago"
+        email["To"] = email_customer
+        email["Subject"] = "Problemas con el pago"
         email.set_content(f"""
         Hola,
-        Hemos detectado un problema con el pago del archivo "{file.name}".
+        Hemos detectado un problema con el pago.
         Referencia de la transacción: {reference}
         Estado actual: {status}
 

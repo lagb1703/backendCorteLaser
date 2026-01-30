@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, List
 from src.UserModule.dtos import User
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 import httpx
+from datetime import datetime
+from json import dumps
 
 class CmrApi(ABC):
     
@@ -21,6 +23,10 @@ class CmrApi(ABC):
     
     @abstractmethod
     async def updateCustomer(self, user: User, document: str)->None:
+        pass
+    
+    @abstractmethod
+    async def addTask(self, payments: Dict[str, Any])->None:
         pass
     
 class Bitrix24(CmrApi):
@@ -72,6 +78,7 @@ class Bitrix24(CmrApi):
                 if results:
                     contact = results[0]
                     return User(
+                        id=int(contact.get("ID", 0)),
                         names=contact.get("NAME", ""),
                         lastNames=contact.get("LAST_NAME", ""),
                         email=contact.get("EMAIL", [{}])[0].get("VALUE", ""),
@@ -97,3 +104,45 @@ class Bitrix24(CmrApi):
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
             await client.post(url, json=data)
+            
+    async def addTask(self, payments: Dict[str, Any])->None:
+        url: str = self._baseUrl + "crm.deal.add"
+        user = await self.searchCustomerByDocument(payments['user'][0].get("identification", ""))
+        details: str = "Detalles de la compra:\n"
+        items: List[Dict[str, Any]] = payments.get("items", [])
+        for info in items:
+            name = info.get("name")
+            fileId = info.get("fileId")
+            materialName = info.get("materialName")
+            thicknessName = info.get("thicknessName")
+            amount_i = info.get("amount")
+            details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
+        data: Dict[str, Any] = {
+            "fields": {
+                "TITLE": "(Ignorar prueba desde API) Nueva venta desde la web",
+                "TYPE_ID": "COMPLEX",
+                "CATEGORY_ID": "0",
+                "STAGE_ID": "PREPAYMENT_INVOICE",
+                "IS_RECURRING": "N",
+                "IS_RETURN_CUSTOMER": "N",
+                "IS_REPEATED_APPROACH": "N",
+                "PROBABILITY": "0",
+                "CURRENCY_ID": "COP",
+                "OPPORTUNITY": "0.00",
+                "IS_MANUAL_OPPORTUNITY": "N",
+                "TAX_VALUE": "0.00",
+                "CONTACT_ID": user.id if user else None,
+                "BEGINDATE": datetime.now().astimezone().isoformat(timespec='seconds'),
+                "CLOSEDATE": datetime.now().astimezone().isoformat(timespec='seconds'),
+                "OPENED": "Y",
+                "COMMENTS": f"{details}",
+                "SOURCE_ID": "STORE",
+                "SOURCE_DESCRIPTION": "Venta desde la plataforma de Corte Laser",
+                "ADDITIONAL_INFO": dumps(payments)
+            },
+            "params": { "REGISTER_SONET_EVENT": "Y" } 
+        }
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(url, json=data)
+            print(response.status_code)
+            print(response.json())
