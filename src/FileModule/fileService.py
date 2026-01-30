@@ -63,16 +63,6 @@ class FileService:
         except Exception as e:
             self.__logger.info(str(e))
             raise
-    async def __saveQuote(self, fileId: str | int, mtId: str | int)-> int | str:
-        try:
-            id = (await self.__postgress.save(FileSql.saveQuote.value, {
-                    "fileId":fileId,
-                    "mtId":mtId
-                }))
-            return id["p_id"]
-        except Exception as e:
-            self.__logger.info(str(e))
-            raise
     
     async def saveFile(self, file: UploadFile, user: UserToken)->str | int:
         try:
@@ -149,7 +139,6 @@ class FileService:
         print(price)
         return PriceResponse(
             price=price,
-            quoteId=await self.__saveQuote(id, mtId)
         )
     
     async def setPriceCalculator(self, exp: str) -> None:

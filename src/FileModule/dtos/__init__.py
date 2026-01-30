@@ -11,4 +11,3 @@ class FileDb(BaseModel):
     
 class PriceResponse(BaseModel):
     price: float
-    quoteId: int | str

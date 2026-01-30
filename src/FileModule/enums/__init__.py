@@ -49,6 +49,3 @@ class FileSql(Enum):
     deleteFile="""
         call "FILE"."SP_FI_FILEPKG_ELIMINARARCHIVO"($1)
     """
-    saveQuote="""
-        call "FILE"."SP_FI_FILEPKG_AGREGARMTFILE"($1, $2)
-    """
