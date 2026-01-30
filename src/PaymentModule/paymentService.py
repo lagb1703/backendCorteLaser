@@ -118,6 +118,7 @@ class PaymentService:
         status = data["transaction"]["status"]
         reference: str = data["transaction"]["reference"]
         email_customer = data["transaction"]["customer_email"]
+        amount_in_cents = data["transaction"]["amount_in_cents"]
         if status == PaymentStatus.APPROVED.value:
             paymentInfo: Dict[str, Any] = await self.__getPaymentInfoByReference(reference)
             print("paymentInfo raw:", paymentInfo)
@@ -129,8 +130,6 @@ class PaymentService:
                     items = []
             if isinstance(items, dict):
                 items = [items]
-
-            # Normalizar user(s)
             users: List[Dict[str, Any]] = paymentInfo.get("user") or []
             if isinstance(users, str):
                 try:
@@ -168,6 +167,8 @@ class PaymentService:
             Equipo de soporte
             """)
             await self.__emailClient.send(email)
+            paymentInfo["amount_in_cents"] = amount_in_cents
+            paymentInfo["reference"] = reference
             await self.__cmrService.addTask(paymentInfo)
             return
         email = EmailMessage()

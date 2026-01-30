@@ -110,6 +110,8 @@ class Bitrix24(CmrApi):
         user = await self.searchCustomerByDocument(payments['user'][0].get("identification", ""))
         details: str = "Detalles de la compra:\n"
         items: List[Dict[str, Any]] = payments.get("items", [])
+        amount_in_cents = payments["amount_in_cents"]
+        reference = payments["reference"]
         for info in items:
             name = info.get("name")
             fileId = info.get("fileId")
@@ -119,6 +121,9 @@ class Bitrix24(CmrApi):
             details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
         data: Dict[str, Any] = {
             "fields": {
+                "UF_CRM_1705079121953": reference,
+                "UF_CRM_1705082852859":payments['user'][0].get("address", ""),
+                "UF_CRM_1707322834825": "213",
                 "TITLE": "(Ignorar prueba desde API) Nueva venta desde la web",
                 "TYPE_ID": "COMPLEX",
                 "CATEGORY_ID": "0",
@@ -128,8 +133,8 @@ class Bitrix24(CmrApi):
                 "IS_REPEATED_APPROACH": "N",
                 "PROBABILITY": "0",
                 "CURRENCY_ID": "COP",
-                "OPPORTUNITY": "0.00",
-                "IS_MANUAL_OPPORTUNITY": "N",
+                "OPPORTUNITY": f"{amount_in_cents / 100:.2f}",
+                "IS_MANUAL_OPPORTUNITY": "Y",
                 "TAX_VALUE": "0.00",
                 "CONTACT_ID": user.id if user else None,
                 "BEGINDATE": datetime.now().astimezone().isoformat(timespec='seconds'),
