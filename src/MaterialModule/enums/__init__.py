@@ -99,6 +99,9 @@ class MaterialSql(Enum):
     addMaterialThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_AGREGARMATERIALTHICKNESS"($1, $2)
     """
+    changeSpeedMaterialThickness="""
+        call "MATERIAL"."SP_MA_MATERIALPKG_EDITARSPEEDMATERIALTHICKNESS"($1, $2)
+    """
     deleteMaterialThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_ELIMINARMATERIALTHICKNESS"($1)
     """

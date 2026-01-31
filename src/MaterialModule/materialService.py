@@ -120,15 +120,25 @@ class MaterialService:
             self.__logger.info(str(e))
             raise
     
-    async def addMaterialThickness(self, materialId: str, thicknessId: str)->int | str:
+    async def addMaterialThickness(self, materialId: str, thicknessId: str, speed: float)->int | str:
         try:
             return (await self.__postgress.save(MaterialSql.addMaterialThickness.value, {
                     "materialId":materialId,
-                    "thicknessId":thicknessId
+                    "thicknessId":thicknessId,
+                    "speed": speed
                 }))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Registro duplicado para material y espesor")
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
+    
+    async def changeSpeedMaterialThickness(self, materialThicknessId: str, speed: float):
+        try:
+            await self.__postgress.update(MaterialSql.changeSpeedMaterialThickness.value, {
+                "speed": speed
+            }, materialThicknessId)
         except Exception as e:
             self.__logger.info(str(e))
             raise
