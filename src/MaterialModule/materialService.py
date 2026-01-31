@@ -136,6 +136,8 @@ class MaterialService:
     
     async def changeSpeedMaterialThickness(self, materialId: str, thicknessId: str, speed: float):
         try:
+            if(speed <= 0):
+                raise HTTPException(status_code=400, detail="La velocidad debe ser mayor a 0")
             materialThicknessId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
             if materialThicknessId is None:
                 raise HTTPException(status_code=404, detail="Material thickness no encontrado")
