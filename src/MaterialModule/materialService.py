@@ -22,7 +22,7 @@ class MaterialService:
         
     async def getMtIdByMaterialIdThicknessId(self, materialId: str | int, thicknessId: str | int)-> int | str | None:
         try:
-            return (await self.__postgress.query(MaterialSql.getMtIdByMaterialIdThicknessId.value, [int(materialId), int(thicknessId)]))[0]["mtId"]
+            return (await self.__postgress.query(MaterialSql.getMtIdByMaterialIdThicknessId.value, [int(materialId), int(thicknessId)]))[0]["FU_MA_MATERIALPKG_GETMTBYUSERIDMATERIALIDTHICKNESSID"]
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -134,8 +134,11 @@ class MaterialService:
             self.__logger.info(str(e))
             raise
     
-    async def changeSpeedMaterialThickness(self, materialThicknessId: str, speed: float):
+    async def changeSpeedMaterialThickness(self, materialId: str, thicknessId: str, speed: float):
         try:
+            materialThicknessId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
+            if materialThicknessId is None:
+                raise HTTPException(status_code=404, detail="Material thickness no encontrado")
             await self.__postgress.update(MaterialSql.changeSpeedMaterialThickness.value, {
                 "speed": speed
             }, materialThicknessId)

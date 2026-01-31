@@ -57,7 +57,8 @@ class MaterialSql(Enum):
             mtmt."thicknessId" as "thicknessId",
             mtmt."name" as "name",
             mtmt."price" as "price",
-            mtmt."lastmodification" as "lastModification"
+            mtmt."lastmodification" as "lastModification",
+            mtmmt."speed" as "speed"
         FROM "MATERIAL"."TB_MATERIAL_MATERIALTHICKNESS" mtmmt
         LEFT JOIN "MATERIAL"."TB_MATERIAL_THICKNESS" mtmt
             ON mtmt."thicknessId" = mtmmt."thicknessId"
@@ -92,9 +93,8 @@ class MaterialSql(Enum):
     """
     getMtIdByMaterialIdThicknessId="""
         SELECT 
-            mtmmt."mtId" as "mtId"
-        FROM "MATERIAL"."TB_MATERIAL_MATERIALTHICKNESS" mtmmt
-        WHERE mtmmt."materialId" = $1 and mtmmt."thicknessId" = $2
+            *
+        FROM "MATERIAL"."FU_MA_MATERIALPKG_GETMTBYUSERIDMATERIALIDTHICKNESSID"($1, $2)
     """
     addMaterialThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_AGREGARMATERIALTHICKNESS"($1, $2)
