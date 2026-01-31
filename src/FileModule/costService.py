@@ -29,7 +29,7 @@ class CostService:
     async def getPriceEstimate(self) -> str:
         return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0]['estimatic'].replace('\"', '')
     
-    async def getPrice(self, materialPrice: float, thicknessPrice: float, area: float, weight: float, perimeter: float, amount: int) -> float:
+    async def getPrice(self, materialPrice: float, thicknessPrice: float, area: float, weight: float, perimeter: float, speed: float, amount: int) -> float:
         if self.tree is None:
             exp = await self.getPriceEstimate()
             self.tree = ast.parse(exp, mode='eval')
@@ -40,7 +40,8 @@ class CostService:
                 "area": area,
                 "weight": weight,
                 "perimeter": perimeter,
-                "amount": amount
+                "amount": amount,
+                "speed": speed
             }
             evaluator = AstEval(names)
             result = evaluator.visit(self.tree.body)

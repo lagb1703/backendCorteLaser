@@ -133,7 +133,16 @@ class FileService:
         thickness = await self.__materialService.getThicknessById(thicknessId)
         if mtId is None:
             raise
-        price = await self.__costService.getPrice(material.price, thickness.price, area, material.weight, perimeter, amount)
+        if thickness.speed is None:
+            thickness.speed = 1.0
+        price = await self.__costService.getPrice(
+            material.price, 
+            thickness.price, 
+            area, material.weight, 
+            perimeter, 
+            thickness.speed, 
+            amount
+        )
         price = ceil(price * 100) / 100
         price = max(price, 1500)
         print(price)
