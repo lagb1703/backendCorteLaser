@@ -43,6 +43,7 @@ origins = [
     "http://localhost:3000", 
     "http://localhost:3001",  
     "https://solid-orbit-wrrq9pvpvrjf9p44-5173.app.github.dev",
+    "https://corte-laser.vercel.app"
 ]
 
 e = Enviroment.getInstance()
