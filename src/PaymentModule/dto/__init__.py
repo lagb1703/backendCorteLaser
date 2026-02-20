@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator, Field
+from pydantic import BaseModel, model_validator, Field, EmailStr
 from typing import Literal, Optional, Annotated, List
 from fastapi import HTTPException
 from src.PaymentModule.enums import ExceptionsEnum
@@ -9,6 +9,11 @@ class ReferenceType(BaseModel):
     thicknessId: Annotated[str, Field(examples=["1"])]
     fileId: Annotated[str, Field(examples=["1"])]
     amount: Annotated[int, Field(examples=[1])]
+    
+class BilingType(BaseModel):
+    name: Annotated[str, Field(examples=["Pedro Pérez"])]
+    email: Annotated[EmailStr, Field(examples=["rangotv56@gmail.com"])]
+    identification: Annotated[str, Field(examples=["123456789"])]
 
 class PaymentTypeResponse(BaseModel):
     id: str
@@ -56,6 +61,8 @@ class PaymentType(BaseModel):
     reference: Optional[str] = None 
     items: List[ReferenceType]
     userId: Optional[str | int] = None
+    billing: BilingType
+    address: Optional[str] = None
     @model_validator(mode="after")
     def check_card_consistency(self):
         if self.payment_method.type == "CARD" and self.card is None:
