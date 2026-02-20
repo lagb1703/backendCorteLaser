@@ -38,15 +38,14 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+e = Enviroment.getInstance()
+
 origins = [
     "http://localhost",
     "http://localhost:3000", 
     "http://localhost:3001",  
-    "https://solid-orbit-wrrq9pvpvrjf9p44-5173.app.github.dev",
-    "https://corte-laser.vercel.app"
+    e.get(EnviromentsEnum.ORIGIN.value)
 ]
-
-e = Enviroment.getInstance()
 
 app.add_middleware(
     CORSMiddleware,

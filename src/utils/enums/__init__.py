@@ -1,6 +1,7 @@
 from enum import Enum
 
 class EnviromentsEnum(Enum):
+    ORIGIN="ORIGIN"
     DB_USER = "DB_USER"
     DB_PASSWORD = "DB_PASSWORD"
     DB_HOST = "DB_HOST"
