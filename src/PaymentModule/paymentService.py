@@ -9,7 +9,7 @@ from src.PaymentModule.enums import PaymentStatus, PaymentSql
 from src.utils.EmailClient import EmailClient
 from src.CmrModule.CmrService import CmrService
 from email.message import EmailMessage
-from json import loads, dumps
+from json import loads
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 import uuid
@@ -56,7 +56,6 @@ class PaymentService:
                 "items": [r.model_dump() for r in payment.items],
                 "paymentMethodId": payment.paymentMethodId
             }
-            print(dumps(data))
             return (await self.__postgress.save(PaymentSql.savePayment.value, data))["p_id"]
         except Exception as e:
             print(e)
@@ -86,6 +85,7 @@ class PaymentService:
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
         await self.__makeDatabsePayment(payment, price, user)
+        await self.sendMessages(payment)
         return result.id
     
     async def verifyPayment(self, id: str)->str:
@@ -106,70 +106,78 @@ class PaymentService:
         except Exception as e:
             print(e)
             raise
+        
+    async def sendMessages(self, payment: PaymentType)->None:
+        if payment.reference is None:
+            return
+        paymentInfo: Dict[str, Any] = await self.__getPaymentInfoByReference(payment.reference)
+        items: List[Dict[str, Any]] = paymentInfo.get("items") or []
+        if isinstance(items, str):
+            try:
+                items = loads(items)
+            except Exception:
+                items = []
+        if isinstance(items, dict):
+            items = [items]
+        users: List[Dict[str, Any]] = paymentInfo.get("user") or []
+        if isinstance(users, str):
+            try:
+                users = loads(users)
+            except Exception:
+                users = []
+        if isinstance(users, dict):
+            users = [users]
+        if len(users) == 0 or len(items) == 0:
+            return
+        details = ""
+        for info in items:
+            name = info.get("name")
+            fileId = info.get("fileId")
+            materialName = info.get("materialName")
+            thicknessName = info.get("thicknessName")
+            amount_i = info.get("amount")
+            details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
+        email = EmailMessage()
+        email["To"] = users[0].get("email")
+        email["Subject"] = "Pago exitoso — Confirmación de pago"
+        email.set_content(f"""
+        Hola.
+        Referencia de la transacción: {payment.reference}
+        Estado: {payment.status}
+
+        Detalles:
+        {details}
+
+        Tu pedido está siendo procesado y te notificaremos cuando esté listo para descarga o envío.
+
+        Gracias por confiar en nosotros.
+
+        Atentamente,
+        Equipo de soporte
+        """)
+        await self.__emailClient.send(email)
+        paymentInfo["amount_in_cents"] = payment.amount_in_cents
+        paymentInfo["reference"] = payment.reference
+        await self.__cmrService.addTask(paymentInfo)
+        return
     
     async def webhook(self, request: Request, response: Response)->None:
-        print("Received webhook")
         response.status_code = 200
         body = await request.body()
         data = loads(body)["data"]
         if(data is None or "transaction" not in data):
             return
-        print(data)
         status = data["transaction"]["status"]
         reference: str = data["transaction"]["reference"]
         email_customer = data["transaction"]["customer_email"]
         amount_in_cents = data["transaction"]["amount_in_cents"]
         if status == PaymentStatus.APPROVED.value:
-            paymentInfo: Dict[str, Any] = await self.__getPaymentInfoByReference(reference)
-            print("paymentInfo raw:", paymentInfo)
-            items: List[Dict[str, Any]] = paymentInfo.get("items") or []
-            if isinstance(items, str):
-                try:
-                    items = loads(items)
-                except Exception:
-                    items = []
-            if isinstance(items, dict):
-                items = [items]
-            users: List[Dict[str, Any]] = paymentInfo.get("user") or []
-            if isinstance(users, str):
-                try:
-                    users = loads(users)
-                except Exception:
-                    users = []
-            if isinstance(users, dict):
-                users = [users]
-            if len(users) == 0 or len(items) == 0:
-                return
-            details = ""
-            for info in items:
-                name = info.get("name")
-                fileId = info.get("fileId")
-                materialName = info.get("materialName")
-                thicknessName = info.get("thicknessName")
-                amount_i = info.get("amount")
-                details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
-            email = EmailMessage()
-            email["To"] = email_customer
-            email["Subject"] = "Pago exitoso — Confirmación de pago"
-            email.set_content(f"""
-            Hola.
-            Referencia de la transacción: {reference}
-            Estado: {status}
-
-            Detalles:
-            {details}
-
-            Tu pedido está siendo procesado y te notificaremos cuando esté listo para descarga o envío.
-
-            Gracias por confiar en nosotros.
-
-            Atentamente,
-            Equipo de soporte
-            """)
-            await self.__emailClient.send(email)
-            paymentInfo["amount_in_cents"] = amount_in_cents
-            paymentInfo["reference"] = reference
-            await self.__cmrService.addTask(paymentInfo)
+            payment = PaymentType(
+                reference=reference,
+                status=status,
+                amount_in_cents=amount_in_cents
+            ) # type: ignore
+            await self.sendMessages(payment)
             return
         email = EmailMessage()
         email["To"] = email_customer
