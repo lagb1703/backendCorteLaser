@@ -119,6 +119,7 @@ class Bitrix24(CmrApi):
             thicknessName = info.get("thicknessName")
             amount_i = info.get("amount")
             details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
+        details += f"información sobre facturación:\nNombre: {payments['billing']['name']}\nEmail: {payments['billing']['email']}\nIdentificación: {payments['billing']['identification']}\n"
         data: Dict[str, Any] = {
             "fields": {
                 "UF_CRM_1705079121953": reference,
