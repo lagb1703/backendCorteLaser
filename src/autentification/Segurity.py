@@ -31,7 +31,7 @@ class Segurity:
             return False
         
     def getToken(self, user: 'UserToken')-> str | bytes:
-        payload = user.__dict__
+        payload = user.model_dump()
         return self.__jwt.encode(payload)
     
     def setUser(self, token: str | bytes)->'UserToken':
