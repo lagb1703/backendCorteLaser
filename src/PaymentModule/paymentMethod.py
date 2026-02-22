@@ -107,7 +107,7 @@ class CardMethod(PaymentMethod):
     async def generatePayment(self, payment: PaymentType, userEmail: str)->PaymentTypeResponse:
         if payment.card is None:
             raise HTTPException(400, ExceptionsEnum.NO_CARD_INFO.value)
-        token = await self.tokenizer(payment.card.__dict__)
+        token = await self.tokenizer(payment.card.model_dump())
         sourcePayload:Dict[str, str | int] = {
             "type":payment.payment_method.type,
             "token":token,

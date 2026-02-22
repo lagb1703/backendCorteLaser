@@ -113,7 +113,6 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
         msp = doc.modelspace()
         geoms:List[LineString] = []
-        print("Entities in DXF:", len(msp))
         for entity in msp:
             try:
                 p_path = path.make_path(entity)
@@ -128,9 +127,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
         convertFactor = DxfAdapter.unitsToMeters.get(units)
         if convertFactor is None:
             raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "unidad desconocida"))
-        print("Geometrias", geoms)
         polygons = polygonize(geoms, coerce_ends=True, coercion_distance=0.1)
-        print("Polygons", polygons)
         return [scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0,0)) for poly in polygons]
 
 class WKBAdapter(GeometriesAdapter[Polygon]):

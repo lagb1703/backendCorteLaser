@@ -52,7 +52,7 @@ class FileService:
     async def __saveFileInfo(self, fileDb: FileDb, user:UserToken)->int | str:
         try:
             fileDb.userId = user.id
-            return (await self.__postgress.save(FileSql.saveFile.value, fileDb.__dict__))["p_id"]
+            return (await self.__postgress.save(FileSql.saveFile.value, fileDb.model_dump()))["p_id"]
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -145,7 +145,6 @@ class FileService:
         )
         price = ceil(price * 100) / 100
         price = max(price, 1500)
-        print(price)
         return PriceResponse(
             price=price,
         )

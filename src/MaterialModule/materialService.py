@@ -80,7 +80,7 @@ class MaterialService:
     async def addNewMaterial(self, material: Material)->str | int:
         try:
             material.weight = int(material.weight)
-            return (await self.__postgress.save(MaterialSql.addNewMaterial.value, material.__dict__))["p_id"]
+            return (await self.__postgress.save(MaterialSql.addNewMaterial.value, material.model_dump()))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Registro duplicado")
@@ -91,7 +91,7 @@ class MaterialService:
     
     async def addNewThickness(self, thickness: Thickness)->str | int:
         try:
-            return (await self.__postgress.save(MaterialSql.addNewThickness.value, thickness.__dict__))["p_id"]
+            return (await self.__postgress.save(MaterialSql.addNewThickness.value, thickness.model_dump()))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Registro duplicado")
@@ -102,7 +102,7 @@ class MaterialService:
     async def changeMaterial(self, materialId: str, material: Material)->None:
         try:
             material.weight = int(material.weight)
-            await self.__postgress.update(MaterialSql.changeMaterial.value, material.__dict__,materialId)
+            await self.__postgress.update(MaterialSql.changeMaterial.value, material.model_dump(),materialId)
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Nombre del material duplicado")
@@ -112,7 +112,7 @@ class MaterialService:
     
     async def changeThickness(self, thicknessId: str, thickness: Thickness)->None:
         try:
-            await self.__postgress.update(MaterialSql.changeThickness.value, thickness.__dict__,thicknessId)
+            await self.__postgress.update(MaterialSql.changeThickness.value, thickness.model_dump(),thicknessId)
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Nombre del thickness duplicado")

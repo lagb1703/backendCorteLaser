@@ -17,7 +17,6 @@ class CmrService:
         
     async def addNewCustomer(self, user: User)->str:
         client: User | None = await self.cmr.searchCustomerByDocument(user.identification)
-        print(client)
         if client is not None:
             return ''
         return await self.cmr.createNewCustomer(user)
