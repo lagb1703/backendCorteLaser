@@ -23,7 +23,6 @@ class CostService:
         data: Dict[str, str] = {
             'estimatic': exp
         }
-        print(data)
         await self.__postgressClient.save(CostSql.newEstimate.value, data)
     
     async def getPriceEstimate(self) -> str:

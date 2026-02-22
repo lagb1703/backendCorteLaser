@@ -145,7 +145,6 @@ class FileService:
         )
         price = ceil(price * 100) / 100
         price = max(price, 1500)
-        print(price)
         return PriceResponse(
             price=price,
         )

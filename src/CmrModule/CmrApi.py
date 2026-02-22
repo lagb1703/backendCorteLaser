@@ -47,12 +47,10 @@ class Bitrix24(CmrApi):
                 self.__customIdField: user.identification,  # Custom field for identification
             }
         }
-        print(data)
         async with httpx.AsyncClient(timeout=15.0) as client:
             resoponse = await client.post(url, json=data)
             if resoponse.status_code == 200:
                 respData = resoponse.json()
-                print(respData)
                 return str(respData.get("result", ""))
         return ''
     
@@ -148,6 +146,4 @@ class Bitrix24(CmrApi):
             "params": { "REGISTER_SONET_EVENT": "Y" } 
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(url, json=data)
-            print(response.status_code)
-            print(response.json())
+            await client.post(url, json=data)

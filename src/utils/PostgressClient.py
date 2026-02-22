@@ -24,7 +24,6 @@ class PostgressClient:
         """Inicializa el pool de conexiones de forma asíncrona"""
         try:
             if self.pool is None:
-                print("Conectando a la base de datos...")
                 envarioment: Enviroment = Enviroment.getInstance()
                 user: str = envarioment.get(EnviromentsEnum.DB_USER.value)
                 password: str = envarioment.get(EnviromentsEnum.DB_PASSWORD.value)
@@ -37,7 +36,6 @@ class PostgressClient:
                     max_size=10,
                     max_inactive_connection_lifetime=300,
                 )
-                print("Conexión a la base de datos establecida.")
         except Exception as e:
             print(f"Error al conectar a la base de datos: {e}")
             self.pool = None
