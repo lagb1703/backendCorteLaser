@@ -120,6 +120,10 @@ class Bitrix24(CmrApi):
             amount_i = info.get("amount")
             details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
         details += f"información sobre facturación:\nNombre: {payments['billing']['name']}\nEmail: {payments['billing']['email']}\nIdentificación: {payments['billing']['identification']}\n"
+        if payments["address"]:
+            details += f"información sobre envío:\nDirección: {payments['address']}"
+        else:
+            details += "información sobre envío:\nSe recogerá en tienda"
         data: Dict[str, Any] = {
             "fields": {
                 "UF_CRM_1705079121953": reference,

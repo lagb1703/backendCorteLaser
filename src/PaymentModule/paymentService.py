@@ -158,6 +158,8 @@ class PaymentService:
         await self.__emailClient.send(email)
         paymentInfo["amount_in_cents"] = payment.amount_in_cents
         paymentInfo["reference"] = payment.reference
+        paymentInfo["billing"] = payment.billing.model_dump()
+        paymentInfo["address"] = payment.address
         await self.__cmrService.addTask(paymentInfo)
         return
     
