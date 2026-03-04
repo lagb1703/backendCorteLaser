@@ -85,7 +85,24 @@ class PaymentService:
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
         await self.__makeDatabsePayment(payment, price, user)
-        await self.sendMessages(payment)
+        if payment.status == PaymentStatus.APPROVED.value:
+            await self.sendMessages(payment)
+            return result.id
+        email = EmailMessage()
+        email["To"] = payment.billing.email
+        email["Subject"] = "Problemas con el pago"
+        email.set_content(f"""
+        Hola,
+        Hemos detectado un problema con el pago.
+        Referencia de la transacción: {payment.reference}
+        Estado actual: {payment.status}
+
+        Por favor, responde a este correo y indica la referencia para que podamos ayudarte a resolverlo lo antes posible.
+
+        Atentamente,
+        Equipo de soporte
+        """)
+        await self.__emailClient.send(email)
         return result.id
     
     async def verifyPayment(self, id: str)->str:
