@@ -126,10 +126,8 @@ class FileService:
         fileWBT:bytes = self.__storage.download(f"{fileInfo.md5}.wkb", FolderName.WKB.value)
         geo = self.__creator.createGeometry("wkb", fileWBT)
         perimeter = geo.getPerimeter()
-        print(perimeter)
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
-        print(area)
         mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
         material = await self.__materialService.getMaterialById(materialId)
         thickness = await self.__materialService.getThicknessById(thicknessId)
@@ -145,7 +143,6 @@ class FileService:
             thickness.speed, 
             amount
         )
-        print(price)
         price = ceil(price * 100) / 100
         price = max(price, 1500)
         return PriceResponse(
