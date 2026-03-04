@@ -42,9 +42,9 @@ class ShapelyAnalizer(GeometriesAnaliser):
         minx, miny, maxx, maxy = rect.bounds
         return (float(minx), float(miny), float(maxx), float(maxy))
     
-    def getPerimeter(self)->int:
+    def getPerimeter(self)->float:
         union = self.__geometries.unary_union # type: ignore
-        return int(union.length)
+        return union.length
     
     def createImage(self)->bytes:
         fig, ax = plt.subplots(figsize=(6,6)) # type: ignore

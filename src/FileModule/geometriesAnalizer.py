@@ -12,7 +12,7 @@ class GeometriesAnaliser(ABC):
         pass
     
     @abstractmethod
-    def getPerimeter(self)->int:
+    def getPerimeter(self)->float:
         pass
     
     @abstractmethod
