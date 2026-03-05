@@ -147,6 +147,8 @@ class FileService:
         price = max(price, 1500)
         return PriceResponse(
             price=price,
+            area=area,
+            perimeter=perimeter
         )
     
     async def setPriceCalculator(self, exp: str) -> None:

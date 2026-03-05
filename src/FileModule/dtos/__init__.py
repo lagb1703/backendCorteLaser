@@ -11,3 +11,5 @@ class FileDb(BaseModel):
     
 class PriceResponse(BaseModel):
     price: float
+    area: float
+    perimeter: float
