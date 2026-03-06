@@ -37,11 +37,14 @@ class FileService:
         if rows is None or len(rows) == 0:
             raise HTTPException(status_code=404, detail=not_found_message)
         return rows[0]
+    
     async def getFileInfo(self, id: str | int, user: UserToken)->FileDb:
         try:
             rows = await self.__postgress.query(FileSql.getFileById.value, [int(id)])
             file = self.__single_result_or_http_error(rows, f"Archivo con id {id} no encontrado")
             file["date"] = str(file["date"]) if file.get("date") is not None else None
+            if file.get("userId") != user.id:
+                raise HTTPException(status_code=403, detail=ExceptionsEnum.NOT_AUTHORIZED.value)
             return FileDb.model_validate(file)
         except HTTPException:
             raise

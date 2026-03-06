@@ -4,6 +4,7 @@ class ExceptionsEnum(Enum):
     BAD_FILE = "El archivo :file no es aceptable por ':description'"
     FILE_NOT_FOUND = "El archivo :file no fue encontrado"
     DUPLICATED_FILE = "El archivo ya ha sido subido anteriormente"
+    NOT_AUTHORIZED = "No tienes permiso para acceder a este recurso"
     
 class FolderName(Enum):
     ORIGINAL = "original"
