@@ -29,7 +29,7 @@ class UserService:
     async def login(self, userName: str, password: str)->UserToken:
         try:
             passSha256: str = sha256(password.encode('utf-8')).hexdigest()
-            user = await self.__postgress.query(UserSql.login.value, [userName, passSha256])
+            user = await self.__postgress.query(UserSql.login.value, [userName.lower(), passSha256])
             if len(user) == 0:
                 raise HTTPException(status_code=401, detail="Usuario o contraseña inválidos")
             return UserToken.model_validate(user[0])
@@ -43,6 +43,7 @@ class UserService:
     async def register(self, user: User)->bool:
         try:
             user.password = sha256(user.password.encode('utf-8')).hexdigest()
+            user.email = user.email.lower()
             id: int | str | None = (await self.__postgress.save(UserSql.register.value, user.model_dump()))["p_id"]
             if id is None:
                 raise HTTPException(400, "")

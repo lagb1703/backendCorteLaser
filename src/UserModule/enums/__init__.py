@@ -7,10 +7,10 @@ class UserSql(Enum):
     login="""
         SELECT 
             utuu."userId" as "id",
-            utuu.email as "email",
+            lower(utuu.email) as "email",
             utuu."isAdmin" as "isAdmin"
         FROM "USER"."TB_USU_USERS" utuu
-        WHERE utuu.email = $1 and utuu.password = $2
+        WHERE lower(utuu.email) = lower($1) and utuu.password = $2
     """
     getAllIdentificationTypes= """
         SELECT 
@@ -70,7 +70,7 @@ class UserSql(Enum):
         FROM "USER"."TB_USU_USERS" utuu
         LEFT JOIN "USER"."TB_USER_IDENTIFICATION_TYPES" utuit 
             ON utuit."identificationTypeId" = utuu."identificationTypeId"
-        WHERE utuu.email = $1
+        WHERE lower(utuu.email) = lower($1)
     """
     changeAddress = """
         call "USER"."SP_USU_USERPKG_EDITARADDRESSUSUARIO"($1,$2)
