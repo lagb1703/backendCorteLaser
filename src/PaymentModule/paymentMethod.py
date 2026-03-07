@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
-from typing import Dict, Any
+from typing import Dict, Any, Union
+import hashlib
 import httpx
 
 class PaymentMethod(ABC):
@@ -14,6 +15,14 @@ class PaymentMethod(ABC):
         self._link: str = e.get(EnviromentsEnum.WOMPY_URL.value)
         self._pubKey: str = e.get(EnviromentsEnum.WOMPY_PUBLIC_KEY.value)
         self._prKey: str = e.get(EnviromentsEnum.WOMPY_PRIVATE_KEY.value)
+        self._signatureKey: str = e.get(EnviromentsEnum.WOMPY_INTEGRITY_KEY.value)
+        
+    def _generate_signature(self, amount_in_cents: int | None, currency: str, reference: str | None) -> str:
+        key: Union[str, tuple] = self._signatureKey # type: ignore
+        if isinstance(key, (tuple, list)):
+            key = key[0]
+        raw = f"{reference}{amount_in_cents}{currency}{key}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
         
     async def _send(self, payload: Dict[str, Any])->PaymentTypeResponse:
         url = f"{self._link}transactions"
@@ -39,6 +48,7 @@ class PaymentMethod(ABC):
             except httpx.RequestError as e:
                 template = getattr(ExceptionsEnum, "WOMPI_BAD_STATUS", None)
                 msg = template.value.replace(":Error", str(e)) if template is not None else f"WOMPI request error: {str(e)}"
+                print(msg)
                 raise HTTPException(502, msg)
             except HTTPException:
                 raise
@@ -126,9 +136,11 @@ class CardMethod(PaymentMethod):
                 "installments": payment.payment_method.installments
             },
             "payment_source_id": paymentSourceId,
+            "signature":self._generate_signature(payment.amount_in_cents, "COP", payment.reference),
             "redirect_url": "https://mitienda.com.co/pago/resultado",
             "reference": payment.reference
         }
+        # print("Payload to send to WOMPI:", json.dumps(payload, indent=2))
         return await self._send(payload)
     
 class NequiMethod(PaymentMethod):
@@ -188,6 +200,7 @@ class NequiMethod(PaymentMethod):
                 "installments": payment.payment_method.installments
             },
             "payment_source_id": paymentSourceId,
+            "signature": self._generate_signature(payment.amount_in_cents, "COP", payment.reference),
             "redirect_url": "https://mitienda.com.co/pago/resultado",
             "reference": payment.reference
         }

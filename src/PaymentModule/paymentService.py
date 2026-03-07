@@ -86,7 +86,7 @@ class PaymentService:
         payment.status = await self.verifyPayment(result.id)
         await self.__makeDatabsePayment(payment, price, user)
         if payment.status == PaymentStatus.APPROVED.value:
-            await self.sendMessages(payment)
+            # await self.sendMessages(payment)
             return result.id
         email = EmailMessage()
         email["To"] = payment.billing.email
