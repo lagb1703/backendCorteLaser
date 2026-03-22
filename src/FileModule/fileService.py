@@ -141,6 +141,7 @@ class FileService:
         price = await self.__costService.getPrice(
             material.price, 
             thickness.price, 
+            thickness.mtPrice,
             area, material.weight, 
             perimeter, 
             thickness.speed, 

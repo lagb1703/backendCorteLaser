@@ -28,14 +28,17 @@ class CostService:
     async def getPriceEstimate(self) -> str:
         return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0]['estimatic'].replace('\"', '')
     
-    async def getPrice(self, materialPrice: float, thicknessPrice: float, area: float, weight: float, perimeter: float, speed: float, amount: int) -> float:
+    async def getPrice(self, materialPrice: float, thicknessPrice: float, mtPrice: int | None, area: float, weight: float, perimeter: float, speed: float, amount: int) -> float:
         if self.tree is None:
             exp = await self.getPriceEstimate()
             self.tree = ast.parse(exp, mode='eval')
         try:
+            if not mtPrice:
+                mtPrice = 0
             names: Dict[str, float | int] = {
                 "materialPrice": materialPrice,
                 "thicknessPrice": thicknessPrice,
+                "mtPrice": mtPrice,
                 "area": area,
                 "weight": weight,
                 "perimeter": perimeter,
