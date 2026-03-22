@@ -15,7 +15,7 @@ class Thickness(BaseModel):
     materialId: Optional[str | int] = None
     name: str
     price: int
-    mtPrice: int
+    mtPrice: Optional[int] = None
     speed: Optional[float] = None
     lastModification: Optional[datetime] = None  
     

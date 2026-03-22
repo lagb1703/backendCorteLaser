@@ -148,6 +148,20 @@ class MaterialService:
         except Exception as e:
             self.__logger.info(str(e))
             raise
+        
+    async def changePriceMaterialThickness(self, materialId: str, thicknessId: str, price: float):
+        try:
+            if(price <= 0):
+                raise HTTPException(status_code=400, detail="La velocidad debe ser mayor a 0")
+            materialThicknessId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
+            if materialThicknessId is None:
+                raise HTTPException(status_code=404, detail="Material thickness no encontrado")
+            await self.__postgress.update(MaterialSql.changePriceMaterialThickness.value, {
+                "price": price
+            }, materialThicknessId)
+        except Exception as e:
+            self.__logger.info(str(e))
+            raise
     
     async def deleteMaterialThickness(self, materialId: str, thicknessId: str)->None:
         try:

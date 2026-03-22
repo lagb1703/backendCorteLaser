@@ -58,7 +58,8 @@ class MaterialSql(Enum):
             mtmt."name" as "name",
             mtmt."price" as "price",
             mtmt."lastmodification" as "lastModification",
-            mtmmt."speed" as "speed"
+            mtmmt."speed" as "speed",
+	        mtmmt."price" as "mtPrice"
         FROM "MATERIAL"."TB_MATERIAL_MATERIALTHICKNESS" mtmmt
         LEFT JOIN "MATERIAL"."TB_MATERIAL_THICKNESS" mtmt
             ON mtmt."thicknessId" = mtmmt."thicknessId"
@@ -101,6 +102,9 @@ class MaterialSql(Enum):
     """
     changeSpeedMaterialThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_EDITARSPEEDMATERIALTHICKNESS"($1, $2)
+    """
+    changePriceMaterialThickness="""
+        call "MATERIAL"."SP_MA_MATERIALPKG_EDITARPRICEMATERIALTHICKNESS"($1, $2)
     """
     deleteMaterialThickness="""
         call "MATERIAL"."SP_MA_MATERIALPKG_ELIMINARMATERIALTHICKNESS"($1)
