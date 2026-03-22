@@ -56,8 +56,8 @@ async def delteThickness(thicknessId: str, _: Annotated[UserToken, Depends(authS
     return await materialService.deleteThickness(thicknessId)
 
 @router.post("/mt/{materialId}/{thicknessId}", status_code=201)
-async def addMaterialThickness(materialId: str, thicknessId: str, speed: float, _: Annotated[UserToken, Depends(authService.setUserAdmin)]):
-    result = await materialService.addMaterialThickness(materialId, thicknessId, speed)
+async def addMaterialThickness(materialId: str, thicknessId: str, speed: float, price: int, _: Annotated[UserToken, Depends(authService.setUserAdmin)]):
+    result = await materialService.addMaterialThickness(materialId, thicknessId, price, speed)
     return result
 
 @router.patch("/mt/{materialId}/{thicknessId}/speed")
