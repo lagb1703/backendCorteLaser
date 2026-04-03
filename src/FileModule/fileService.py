@@ -131,11 +131,8 @@ class FileService:
         perimeter = geo.getPerimeter()
         minX, minY, maxX, maxY = geo.getMinimunRectangle()
         area = (maxX - minX)*(maxY-minY)
-        mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
         material = await self.__materialService.getMaterialById(materialId)
-        thickness = await self.__materialService.getThicknessById(thicknessId)
-        if mtId is None:
-            raise
+        thickness = await self.__materialService.getMtByMaterialIdAndThicknessId(thicknessId, materialId)
         if thickness.speed is None:
             thickness.speed = 1.0
         price = await self.__costService.getPrice(

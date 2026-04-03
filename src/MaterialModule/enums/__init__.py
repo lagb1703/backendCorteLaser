@@ -33,6 +33,19 @@ class MaterialSql(Enum):
         FROM "MATERIAL"."TB_MATERIAL_THICKNESS" mtmt
         WHERE mtmt."thicknessId" = $1
     """
+    getMtByMaterialIdAndThicknessId="""
+        SELECT 
+            mtmt."thicknessId" as "thicknessId",
+            mtmt."name" as "name",
+            mtmt."price" as "price",
+            mtmt."lastmodification" as "lastModification",
+            mtmmt."speed" as "speed",
+	        mtmmt."price" as "mtPrice"
+        FROM "MATERIAL"."TB_MATERIAL_MATERIALTHICKNESS" mtmmt
+        LEFT JOIN "MATERIAL"."TB_MATERIAL_THICKNESS" mtmt
+            ON mtmt."thicknessId" = mtmmt."thicknessId"
+        WHERE mtmt."thicknessId" = $1 AND mtmmt."materialId" = $2
+    """
     addNewMaterial="""
         call "MATERIAL"."SP_MA_MATERIALPKG_AGREGARMATERIAL"($1, $2)
     """
