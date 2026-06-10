@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
-from typing import Dict, Any
+from typing import Any
 import httpx
 
 class PaymentMethod(ABC):
@@ -15,7 +15,7 @@ class PaymentMethod(ABC):
         self._pubKey: str = e.get(EnviromentsEnum.WOMPY_PUBLIC_KEY.value)
         self._prKey: str = e.get(EnviromentsEnum.WOMPY_PRIVATE_KEY.value)
         
-    async def _send(self, payload: Dict[str, Any])->PaymentTypeResponse:
+    async def _send(self, payload: dict[str, Any])->PaymentTypeResponse:
         url = f"{self._link}transactions"
         async with httpx.AsyncClient(timeout=15.0) as client:
             try:
@@ -45,7 +45,7 @@ class PaymentMethod(ABC):
             except Exception as e:
                 raise HTTPException(500, f"Error interno al generar pago: {str(e)}")
             
-    async def _getPaymentSourceId(self, payload: Dict[str, Any])-> int:
+    async def _getPaymentSourceId(self, payload: dict[str, Any])-> int:
         url = f"{self._link}payment_sources"
         async with httpx.AsyncClient(timeout=15.0) as client:
             try:
@@ -77,12 +77,12 @@ class PaymentMethod(ABC):
         pass
     
     @abstractmethod
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any])->str:
         pass
     
 class CardMethod(PaymentMethod):
 
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any])->str:
         url = f"{self._link}tokens/cards"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
@@ -133,7 +133,7 @@ class CardMethod(PaymentMethod):
     
 class NequiMethod(PaymentMethod):
     
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any])->str:
         url = f"{self._link}tokens/nequi"
         urlGet = f"{self._link}tokens/nequi/"
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -170,14 +170,14 @@ class NequiMethod(PaymentMethod):
         token = await self.tokenizer({
             "phone_number": pm.phone_number
         })
-        sourcePayload:Dict[str, str | int] = {
+        sourcePayload: dict[str, str | int] = {
             "type":payment.payment_method.type,
             "token":token,
             "acceptance_token":payment.acceptance_token,
             "customer_email": userEmail
         }
         paymentSourceId: int = await self._getPaymentSourceId(sourcePayload)
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "acceptance_token":payment.acceptance_token,
             "amount_in_cents": payment.amount_in_cents,
             "currency": "COP",

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
 
 class GeometriesAnaliser(ABC):
     
@@ -8,7 +7,7 @@ class GeometriesAnaliser(ABC):
         pass
     
     @abstractmethod
-    def getMinimunRectangle(self)->Tuple[float, float, float, float]:
+    def getMinimunRectangle(self)->tuple[float, float, float, float]:
         pass
     
     @abstractmethod

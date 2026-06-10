@@ -4,10 +4,8 @@ from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
 from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection # type: ignore
-from typing import Dict, List
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from typing import Tuple
 from shapely.affinity import scale
 from ezdxf.filemanagement import read # type: ignore
 from ezdxf.lldxf.const import DXFStructureError # type: ignore
@@ -17,14 +15,14 @@ from shapely.geometry import LineString
 
 class ShapelyAnalizer(GeometriesAnaliser):
     
-    def __init__(self, geometries: List[Polygon]):
+    def __init__(self, geometries: list[Polygon]):
         self.__geometries = gpd.GeoSeries(geometries)
         
     def checkGeometries(self)->bool:
         validGeometry:bool = bool(self.__geometries.notna().all() and self.__geometries.is_valid.all())
         gdf = gpd.GeoDataFrame({'geometry': self.__geometries})
         candidates = gpd.sjoin(gdf, gdf, how='inner', predicate='intersects')
-        overlaps: List[Tuple[int, int]] = []
+        overlaps: list[tuple[int, int]] = []
         for _, row in candidates.iterrows():
             i = int(row.name) # type: ignore
             j = int(row['index_right']) 
@@ -36,7 +34,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
                 overlaps.append((i, j))
         return validGeometry and len(overlaps) == 0
     
-    def getMinimunRectangle(self)->Tuple[float, float, float, float]:
+    def getMinimunRectangle(self)->tuple[float, float, float, float]:
         union = self.__geometries.unary_union # type: ignore
         rect = union.minimum_rotated_rectangle
         minx, miny, maxx, maxy = rect.bounds
@@ -65,7 +63,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
     
 class DxfAdapter(GeometriesAdapter[Polygon]):
     
-    unitsToMeters:Dict[int, float] = {
+    unitsToMeters: dict[int, float] = {
             0: 0,  # Unidades sin definir
             1: 0.0254,  # Pulgadas a metros
             2: 0.3048,  # Pies a metros
@@ -89,7 +87,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
             20: 3.086e+16,  # Parsecs a metros
     }
     
-    def makeGeometries(self, data: bytes)-> List[Polygon]:
+    def makeGeometries(self, data: bytes)-> list[Polygon]:
         buf = None
         try:
             buf = TextIOWrapper(BytesIO(data), encoding='latin-1')
@@ -112,7 +110,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                     except Exception:
                         pass
         msp = doc.modelspace()
-        geoms:List[LineString] = []
+        geoms: list[LineString] = []
         print("Entities in DXF:", len(msp))
         for entity in msp:
             try:
@@ -135,7 +133,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
     
-    def makeGeometries(self, data: bytes)-> List[Polygon]:
+    def makeGeometries(self, data: bytes)-> list[Polygon]:
         try:
             geom = wkb.loads(data)
             if isinstance(geom, Polygon):

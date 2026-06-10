@@ -1,5 +1,5 @@
 from asyncpg import Pool, create_pool  # type: ignore
-from typing import Any, Optional, Dict, Union, Type, List
+from typing import Any
 from types import TracebackType
 from json import dumps
 import asyncio
@@ -18,7 +18,7 @@ class PostgressClient:
         return PostgressClient.__instance
     
     def __init__(self) -> None:
-        self.pool: Optional[Pool] = None  # type: ignore
+        self.pool: Pool | None = None  # type: ignore
         
     async def connect(self) -> None:
         """Inicializa el pool de conexiones de forma asíncrona"""
@@ -42,7 +42,7 @@ class PostgressClient:
             print(f"Error al conectar a la base de datos: {e}")
             self.pool = None
         
-    async def query(self, sql: str, data: List[Any] = []) -> list[Dict[str, Any]]:
+    async def query(self, sql: str, data: list[Any] = []) -> list[dict[str, Any]]:
         """Ejecuta una consulta y retorna múltiples registros"""
         if self.pool is None:
             await self.connect()
@@ -53,7 +53,7 @@ class PostgressClient:
                 return [dict(row) for row in rows] if rows else []  # type: ignore
         return []
         
-    async def save(self, sql: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def save(self, sql: str, data: dict[str, Any]) -> dict[str, Any]:
         """Guarda un registro y retorna el resultado"""
         if self.pool is None:
             await self.connect()
@@ -64,7 +64,7 @@ class PostgressClient:
                 return dict(row) if row else {}  # type: ignore
         return {}
         
-    async def update(self, sql: str, data: Dict[str, Any], id: Union[int, str]) -> Dict[str, Any]:
+    async def update(self, sql: str, data: dict[str, Any], id: int | str) -> dict[str, Any]:
         """Actualiza un registro usando el ID proporcionado"""
         if self.pool is None:
             await self.connect()
@@ -76,7 +76,7 @@ class PostgressClient:
                 return dict(row) if row else {}  # type: ignore
         return {}
     
-    async def delete(self, sql: str, id: str | int) -> list[Dict[str, Any]]:
+    async def delete(self, sql: str, id: str | int) -> list[dict[str, Any]]:
         """Ejecuta una consulta y retorna múltiples registros"""
         if self.pool is None:
             await self.connect()
@@ -119,9 +119,9 @@ class PostgressClient:
         
     async def __aexit__(
         self, 
-        exc_type: Optional[Type[BaseException]], 
-        exc_val: Optional[BaseException], 
-        exc_tb: Optional[TracebackType]
+        exc_type: type[BaseException] | None, 
+        exc_val: BaseException | None, 
+        exc_tb: TracebackType | None
     ) -> None:
         """Cierra las conexiones al salir del context manager"""
         pass

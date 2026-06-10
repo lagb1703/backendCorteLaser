@@ -2,7 +2,7 @@ from src.autentification.AuthService import AuthService
 from src.MaterialModule.materialService import MaterialService
 from src.MaterialModule.dtos import Material, Thickness
 from src.UserModule.dtos import UserToken
-from typing import List, Annotated
+from typing import Annotated
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/material", tags=["materiales"])
@@ -12,11 +12,11 @@ authService = AuthService.getInstance()
 materialService = MaterialService.getInstance()
 
 @router.get("/materials")
-async def getAllMaterials()->List[Material]:
+async def getAllMaterials()->list[Material]:
     return await materialService.getAllMaterials()
 
 @router.get("/thickness/all")
-async def getAllThickness()->List[Thickness]:
+async def getAllThickness()->list[Thickness]:
     return await materialService.getAllThickness()
 
 @router.get("/material")
@@ -24,11 +24,11 @@ async def getMaterialById(materialId: str)->Material:
     return await materialService.getMaterialById(materialId)
 
 @router.get("/thickness")
-async def getThicknessByMaterial(materialId: str)->List[Thickness]:
+async def getThicknessByMaterial(materialId: str)->list[Thickness]:
     return await materialService.getThicknessByMaterial(materialId)
 
 @router.get("/thickness/noLinked")
-async def getThicknessNoLinkedToMaterial(materialId: str)->List[Thickness]:
+async def getThicknessNoLinkedToMaterial(materialId: str)->list[Thickness]:
     return await materialService.getThicknessNoLinkedToMaterial(materialId)
 
 @router.post("/material", status_code=201)

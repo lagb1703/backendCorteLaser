@@ -1,7 +1,6 @@
 from src.MaterialModule.dtos import Material, Thickness
 from src.MaterialModule.enums import MaterialSql
 from src.utils.PostgressClient import PostgressClient
-from typing import List
 import logging
 import asyncpg # type: ignore
 from fastapi import HTTPException
@@ -28,7 +27,7 @@ class MaterialService:
             raise
         
         
-    async def getAllMaterials(self)->List[Material]:
+    async def getAllMaterials(self)->list[Material]:
         try:
             materials = await self.__postgress.query(MaterialSql.getAllMaterials.value, [])
             return [Material.model_validate(m) for m in materials]
@@ -37,7 +36,7 @@ class MaterialService:
             raise
             
     
-    async def getAllThickness(self)->List[Thickness]:
+    async def getAllThickness(self)->list[Thickness]:
         try:
             thickness = await self.__postgress.query(MaterialSql.getAllThickness.value, [])
             return [Thickness.model_validate(t) for t in thickness]
@@ -61,7 +60,7 @@ class MaterialService:
             self.__logger.info(str(e))
             raise
     
-    async def getThicknessByMaterial(self, materialId: str)->List[Thickness]:
+    async def getThicknessByMaterial(self, materialId: str)->list[Thickness]:
         try:
             thickness = await self.__postgress.query(MaterialSql.getAllThicknessByMaterialId.value, [int(materialId)])
             return [Thickness.model_validate(t) for t in thickness]
@@ -69,7 +68,7 @@ class MaterialService:
             self.__logger.info(str(e))
             raise
         
-    async def getThicknessNoLinkedToMaterial(self, materialId: str | int)-> List[Thickness]:
+    async def getThicknessNoLinkedToMaterial(self, materialId: str | int)-> list[Thickness]:
         try:
             thickness = await self.__postgress.query(MaterialSql.getThicknessNoLinkedToMaterial.value, [int(materialId)])
             return [Thickness.model_validate(t) for t in thickness]

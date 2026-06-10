@@ -5,7 +5,7 @@ from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
 import httpx
-from typing import Dict, Any
+from typing import Any
 
 class WompiWapper:
     
@@ -14,7 +14,7 @@ class WompiWapper:
         self.__link: str = e.get(EnviromentsEnum.WOMPY_URL.value)
         self.__pubKey: str = e.get(EnviromentsEnum.WOMPY_PUBLIC_KEY.value)
         self.__prKey: str = e.get(EnviromentsEnum.WOMPY_PRIVATE_KEY.value)
-        self.__paymentMethods: Dict[str, PaymentMethod] = {
+        self.__paymentMethods: dict[str, PaymentMethod] = {
             "NEQUI":NequiMethod(),
             "CARD":CardMethod()
         }
@@ -49,7 +49,7 @@ class WompiWapper:
             raise 
         return await paymentMethod.generatePayment(payment, userEmail)
     
-    async def verifyPayment(self, id: str)-> Dict[str, Any]:
+    async def verifyPayment(self, id: str)-> dict[str, Any]:
         url = f"{self.__link}transactions/{id}"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:

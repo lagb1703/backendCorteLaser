@@ -7,7 +7,7 @@ from src.MaterialModule.materialService import MaterialService
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from typing import List, Dict, Any
+from typing import Any
 from src.FileModule.dtos import FileDb, PriceResponse
 from src.utils.PostgressClient import PostgressClient
 from io import BytesIO
@@ -37,9 +37,9 @@ class FileService:
 
     def __single_result_or_http_error(
         self,
-        rows: List[Dict[str, Any]] | None,
+        rows: list[dict[str, Any]] | None,
         not_found_message: str = "Recurso no encontrado",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if rows is None or len(rows) == 0:
             raise HTTPException(status_code=404, detail=not_found_message)
         return rows[0]
@@ -146,12 +146,12 @@ class FileService:
             },
         )
 
-    async def getAllUserInfoFiles(self, user: UserToken) -> List[FileDb]:
+    async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
             rows = await self.__postgress.query(
                 FileSql.getAllUserFiles.value, [user.id]
             )
-            result: List[FileDb] = []
+            result: list[FileDb] = []
             for r in rows:
                 r["date"] = str(r["date"])
                 result.append(FileDb.model_validate(r))

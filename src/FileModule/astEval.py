@@ -1,7 +1,7 @@
 import ast
 import builtins
 import operator as op
-from typing import Dict, Any
+from typing import Any
 
 class AstEval(ast.NodeVisitor):
     """
@@ -10,7 +10,7 @@ class AstEval(ast.NodeVisitor):
     """
 
     # Supported operators
-    operators:Dict[Any, Any] = {
+    operators: dict[Any, Any] = {
         ast.Add: op.add,
         ast.Sub: op.sub,
         ast.Mult: op.mul,
@@ -23,7 +23,7 @@ class AstEval(ast.NodeVisitor):
     
     ALLOWED_NAMES = {"min", "max", "round"}
     
-    def __init__(self, names: Dict[str, Any]):
+    def __init__(self, names: dict[str, Any]):
         self.names = dict(names)
 
     def visit_BinOp(self, node: ast.BinOp):
@@ -42,10 +42,6 @@ class AstEval(ast.NodeVisitor):
 
     def visit_Constant(self, node: ast.Constant):
         return node.value
-
-    # For older Python AST compatibility
-    def visit_Num(self, node: ast.Num): # type: ignore
-        return node.n # type: ignore
 
     def visit_Call(self, node: ast.Call):
         # only allow calls to simple names in ALLOWED_NAMES

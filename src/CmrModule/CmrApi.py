@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 from src.UserModule.dtos import User
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
@@ -38,7 +38,7 @@ class Bitrix24(CmrApi):
     
     async def createNewCustomer(self, user: User)->str:
         url: str = self._baseUrl + "crm.contact.add"
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "fields": {
                 "NAME": user.names,
                 "LAST_NAME": user.lastNames,
@@ -58,7 +58,7 @@ class Bitrix24(CmrApi):
     
     async def searchCustomerByDocument(self, document: str)->User | None:
         url: str = self._baseUrl + "crm.contact.list"
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "filter": {
                 self.__customIdField: document
             },
@@ -93,7 +93,7 @@ class Bitrix24(CmrApi):
     
     async def updateCustomer(self, user: User, document: str)->None:
         url: str = self._baseUrl + "crm.contact.update"
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "fields": {
                 "NAME": user.names,
                 "LAST_NAME": user.lastNames,
@@ -105,11 +105,11 @@ class Bitrix24(CmrApi):
         async with httpx.AsyncClient(timeout=15.0) as client:
             await client.post(url, json=data)
             
-    async def addTask(self, payments: Dict[str, Any])->None:
+    async def addTask(self, payments: dict[str, Any])->None:
         url: str = self._baseUrl + "crm.deal.add"
         user = await self.searchCustomerByDocument(payments['user'][0].get("identification", ""))
         details: str = "Detalles de la compra:\n"
-        items: List[Dict[str, Any]] = payments.get("items", [])
+        items: list[dict[str, Any]] = payments.get("items", [])
         amount_in_cents = payments["amount_in_cents"]
         reference = payments["reference"]
         for info in items:
@@ -119,7 +119,7 @@ class Bitrix24(CmrApi):
             thicknessName = info.get("thicknessName")
             amount_i = info.get("amount")
             details += f'- Archivo: {name} (ID: {fileId}) (material: {materialName}) (espesor: {thicknessName}) (cantidad: {amount_i})\n'
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "fields": {
                 "UF_CRM_1705079121953": reference,
                 "UF_CRM_1705082852859":payments['user'][0].get("address", ""),

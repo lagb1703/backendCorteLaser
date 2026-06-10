@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator, Field
-from typing import Literal, Optional, Annotated, List
+from typing import Literal, Annotated
 from fastapi import HTTPException
 from src.PaymentModule.enums import ExceptionsEnum
 import re
@@ -27,9 +27,9 @@ class WompiTokenizerType(BaseModel):
     
 class PaymentMethodWompi(BaseModel):
     type: Annotated[Literal["CARD", "PSE", "NEQUI", "BANCOLOMBIA_QR", "BANCOLOMBIA_TRANSFER"], Field(examples=["CARD"])]
-    phone_number: Annotated[Optional[str], Field(examples=["3017222568"])] = None
-    token: Optional[str] = None
-    installments: Annotated[Optional[int], Field(examples=[1])] = None
+    phone_number: Annotated[str | None, Field(examples=["3017222568"])] = None
+    token: str | None = None
+    installments: Annotated[int | None, Field(examples=[1])] = None
     @model_validator(mode="after")
     def check_consistensy(self):
         match(self.type):
@@ -45,17 +45,17 @@ class PaymentMethodWompi(BaseModel):
         return self
     
 class PaymentType(BaseModel):
-    id: Optional[str | int] = None
-    status: Optional[str] = None
-    paymentMethodId: Optional[str | int] = None
+    id: str | int | None = None
+    status: str | None = None
+    paymentMethodId: str | int | None = None
     acceptance_token: str
     accept_personal_auth: str
-    amount_in_cents: Optional[Annotated[int, Field(examples=[150000])]] = None
+    amount_in_cents: Annotated[int | None, Field(examples=[150000])] = None
     payment_method: PaymentMethodWompi
-    card: Optional[WompiTokenizerType]
-    reference: Optional[str] = None 
-    items: List[ReferenceType]
-    userId: Optional[str | int] = None
+    card: WompiTokenizerType | None
+    reference: str | None = None 
+    items: list[ReferenceType]
+    userId: str | int | None = None
     @model_validator(mode="after")
     def check_card_consistency(self):
         if self.payment_method.type == "CARD" and self.card is None:

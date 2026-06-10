@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 from typing import TypeVar, Generic
 
 T = TypeVar('T')
@@ -10,5 +9,5 @@ class GeometriesAdapter(ABC, Generic[T]):
         pass
     
     @abstractmethod
-    def makeGeometries(self, data: bytes)-> List[T]:
+    def makeGeometries(self, data: bytes)-> list[T]:
         pass

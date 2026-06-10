@@ -3,7 +3,7 @@ from src.UserModule.dtos import UserToken
 from src.FileModule.fileService import FileService
 from src.PaymentModule.wompiWapper import WompiWapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
-from typing import List, Dict, Any
+from typing import Any
 from fastapi import Response, Request
 from src.PaymentModule.enums import PaymentStatus, PaymentSql
 from src.utils.EmailClient import EmailClient
@@ -32,7 +32,7 @@ class PaymentService:
         self.__bussinessEmail: str = e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
         self.__cmrService: CmrService = CmrService.getInstance()
         
-    async def __getPaymentInfoByReference(self, reference: str)->Dict[str, Any]:
+    async def __getPaymentInfoByReference(self, reference: str)->dict[str, Any]:
         rows = await self.__postgress.query(PaymentSql.getPaymentInfoByReference.value, [reference])
         if not rows:
             return {}
@@ -49,7 +49,7 @@ class PaymentService:
         
     async def __makeDatabsePayment(self, payment: PaymentType, amount: int, user: UserToken)->str:
         try:
-            data: Dict[str, Any] = {
+            data: dict[str, Any] = {
                 "p_id": payment.id,
                 "status": payment.status,
                 "reference": payment.reference,
@@ -62,7 +62,7 @@ class PaymentService:
             print(e)
             raise
         
-    async def getPaymentMethods(self)->List[PaymentMethodType]:
+    async def getPaymentMethods(self)->list[PaymentMethodType]:
         try:
             rows = await self.__postgress.query(PaymentSql.getAllPaymentMethods.value, [])
             return [PaymentMethodType.model_validate(r) for r in rows]
@@ -99,7 +99,7 @@ class PaymentService:
             result = await self.verifyPayment(id)
         return result
     
-    async def getPayments(self, userId: int)->List[DbPaymentType]:
+    async def getPayments(self, userId: int)->list[DbPaymentType]:
         try:
             rows = await self.__postgress.query(PaymentSql.getPaymentsByUserId.value, [int(userId)])
             return [DbPaymentType.model_validate(r) for r in rows]
@@ -120,9 +120,9 @@ class PaymentService:
         email_customer = data["transaction"]["customer_email"]
         amount_in_cents = data["transaction"]["amount_in_cents"]
         if status == PaymentStatus.APPROVED.value:
-            paymentInfo: Dict[str, Any] = await self.__getPaymentInfoByReference(reference)
+            paymentInfo: dict[str, Any] = await self.__getPaymentInfoByReference(reference)
             print("paymentInfo raw:", paymentInfo)
-            items: List[Dict[str, Any]] = paymentInfo.get("items") or []
+            items: list[dict[str, Any]] = paymentInfo.get("items") or []
             if isinstance(items, str):
                 try:
                     items = loads(items)
@@ -130,7 +130,7 @@ class PaymentService:
                     items = []
             if isinstance(items, dict):
                 items = [items]
-            users: List[Dict[str, Any]] = paymentInfo.get("user") or []
+            users: list[dict[str, Any]] = paymentInfo.get("user") or []
             if isinstance(users, str):
                 try:
                     users = loads(users)

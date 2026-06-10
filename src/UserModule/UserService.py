@@ -3,7 +3,6 @@ from src.utils.PostgressClient import PostgressClient
 from src.UserModule.dtos import User, UserToken, IdentificationType
 from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
-from typing import List
 from src.utils.EmailClient import EmailClient
 from src.CmrModule.CmrService import CmrService
 from email.message import EmailMessage
@@ -61,10 +60,10 @@ class UserService:
             self.__logger.info(str(e))
             raise
     
-    async def getAllUser(self)->List[User]:
+    async def getAllUser(self)->list[User]:
         try:
             rows = await self.__postgress.query(UserSql.getAllUser.value, [])
-            users: List[User] = [User.model_validate(r) for r in rows]
+            users: list[User] = [User.model_validate(r) for r in rows]
             return users
         except Exception as e:
             self.__logger.info(str(e))
@@ -100,10 +99,10 @@ class UserService:
             self.__logger.info(str(e))
             raise
         
-    async def getAllIdentificationTypes(self)->List[IdentificationType]:
+    async def getAllIdentificationTypes(self)->list[IdentificationType]:
         try:
             rows = await self.__postgress.query(UserSql.getAllIdentificationTypes.value, [])
-            identificationTypes: List[IdentificationType] = [IdentificationType.model_validate(r) for r in rows]
+            identificationTypes: list[IdentificationType] = [IdentificationType.model_validate(r) for r in rows]
             return identificationTypes
         except Exception as e:
             self.__logger.info(str(e))

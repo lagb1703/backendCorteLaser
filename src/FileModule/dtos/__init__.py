@@ -1,13 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional
 
 class FileDb(BaseModel):
-    id: Optional[int | str] = None
+    id: int | str | None = None
     name: str
-    date: Optional[str] = None
+    date: str | None = None
     md5: str
     bucket: str
-    userId: Optional[str | int] = None
+    userId: str | int | None = None
     
 class PriceResponse(BaseModel):
     price: float

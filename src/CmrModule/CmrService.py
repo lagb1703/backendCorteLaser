@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from src.CmrModule.CmrApi import CmrApi, Bitrix24
 from src.UserModule.dtos import User
 
@@ -25,5 +25,5 @@ class CmrService:
     async def updateCustomer(self, user: User, document: str):
         return await self.cmr.updateCustomer(user, document)
     
-    async def addTask(self, payments: Dict[str, Any])->None:
+    async def addTask(self, payments: dict[str, Any])->None:
         return await self.cmr.addTask(payments)

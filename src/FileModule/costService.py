@@ -1,7 +1,6 @@
 from src.FileModule.astEval import AstEval
 from src.utils.PostgressClient import PostgressClient
 from src.FileModule.enums import CostSql
-from typing import Dict
 import ast
 from src.FileModule.interfaces import PriceElements
 
@@ -22,7 +21,7 @@ class CostService:
         self.__postgressClient = PostgressClient.getInstance()
 
     async def __setEstimate(self, exp: str) -> None:
-        data: Dict[str, str] = {"estimatic": exp}
+        data: dict[str, str] = {"estimatic": exp}
         print(data)
         await self.__postgressClient.save(CostSql.newEstimate.value, data)
 
@@ -36,7 +35,7 @@ class CostService:
             exp = await self.getPriceEstimate()
             self.tree = ast.parse(exp, mode="eval")
         try:
-            names: Dict[str, float | int] = priceElemnets.model_dump()
+            names: dict[str, float | int] = priceElemnets.model_dump()
             evaluator = AstEval(names)
             result = evaluator.visit(self.tree.body)
             return result
