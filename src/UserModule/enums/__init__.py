@@ -2,6 +2,8 @@ from enum import Enum
 
 class ExceptionsEnum(Enum):
     DUPLICATED_USER = "El correo ya ha sido registrado anteriormente"
+    NO_ROLL = "El usuario no tiene permisos para realizar esta accion"
+    EXPIRED_TOKEN = "El token ha expirado"
 
 class UserSql(Enum):
     login="""
