@@ -1,40 +1,24 @@
 from __future__ import annotations
 from typing import Any, TYPE_CHECKING
-from src.autentification.Segurity import Segurity
-from fastapi import HTTPException, Depends
+from src.autentification.Segurity import Segurity, get_segurity
+from fastapi import HTTPException
 from starlette.requests import Request
 from src.autentification.enums import ExceptionsEnum
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 from authlib.integrations.starlette_client import OAuth  # type: ignore
-from authlib.jose.errors import ExpiredTokenError
-import ssl
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import RedirectResponse
+from src.UserModule.UserService import UserService, get_user_service
 
 if TYPE_CHECKING:
     from src.UserModule.dtos import UserToken
 
-security = HTTPBearer(
-    scheme_name="BearerAuth",
-    description="Ingresa tu token JWT sin el prefijo 'Bearer'"
-)
-
 class AuthService:
     
-    __instance: 'AuthService | None' = None
-    
-    @staticmethod
-    def getInstance():
-        if AuthService.__instance is None:
-            AuthService.__instance = AuthService()
-        return AuthService.__instance
-    
-    def __init__(self):
-        from src.UserModule.UserService import UserService
+    def __init__(self, segurity: Segurity, user_service: UserService):
         e = Enviroment.getInstance()
-        self.__segurity = Segurity()
-        self.__userService = UserService.getInstance()
+        self.__segurity = segurity
+        self.__userService = user_service
         self.__oauth = OAuth()
         self.__oauth.register( # type: ignore
             name="google",
@@ -71,31 +55,14 @@ class AuthService:
             t: UserToken = UserToken(id=user.id, email=email, isAdmin=user.isAdmin)
             return RedirectResponse(f"{e.get(EnviromentsEnum.GOOGLE_CALLBACK_URL.value)}?token={str(self.__segurity.getToken(t))}")
 
-        except ssl.SSLError as ssl_error:
-            raise HTTPException(status_code=400, detail=ExceptionsEnum.SSL_ERROR.value.replace(":error", str(ssl_error)))
-        except HTTPException:
-            raise
         except Exception as e:
             raise HTTPException(status_code=400, detail=ExceptionsEnum.GOOGLE_AUTH_ERROR.value.replace(":Error", str(e)))
         
-    def setUser(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
-        try:
-            token = credentials.credentials
-            return self.__segurity.setUser(token)
-        except ExpiredTokenError as _:
-            raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
-    
-    async def setUserAdmin(self, credentials: HTTPAuthorizationCredentials = Depends(security))->'UserToken':
-        try:
-            token = credentials.credentials
-            userToken =  self.__segurity.setUser(token)
-            user = await self.__userService.getUSerById(userToken.id)
-            userToken.isAdmin = user.isAdmin
-            if not userToken.isAdmin:
-                raise HTTPException(status_code=403, detail=ExceptionsEnum.NO_ROLL.value)
-            return userToken
-        except ExpiredTokenError as _:
-            raise HTTPException(401, ExceptionsEnum.EXPIRED_TOKEN.value)
-        
     def refreshToken(self, token: str) -> str | bytes:
         return self.__segurity.refreshToken(token)
+
+def get_auth_service() -> AuthService:
+    return AuthService(
+        segurity=get_segurity(),
+        user_service=get_user_service()
+    )

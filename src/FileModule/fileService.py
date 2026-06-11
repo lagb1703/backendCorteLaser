@@ -1,38 +1,36 @@
-from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator
-from src.FileModule.storageService import StorageService
+from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator, get_geometry_analiser_creator
+from src.FileModule.storageService import StorageService, get_storage_service
 from src.FileModule.enums import ExceptionsEnum, FileSql, FolderName
 from src.FileModule.interfaces import PriceElements
-from src.FileModule.costService import CostService
-from src.MaterialModule.materialService import MaterialService
+from src.FileModule.costService import CostService, get_cost_service
+from src.MaterialModule.materialService import MaterialService, get_material_service
 from src.UserModule.dtos import UserToken
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from typing import Any
 from src.FileModule.dtos import FileDb, PriceResponse
-from src.utils.PostgressClient import PostgressClient
+from src.utils.PostgressClient import PostgressClient, get_postgress_client
 from io import BytesIO
 import hashlib
 import logging
 from asyncpg.exceptions import UniqueViolationError  # type: ignore
 from math import ceil
 
-
 class FileService:
 
-    __instance: "FileService | None" = None
-
-    @staticmethod
-    def getInstance():
-        if FileService.__instance is None:
-            FileService.__instance = FileService()
-        return FileService.__instance
-
-    def __init__(self):
-        self.__storage: StorageService = StorageService.getInstance()
-        self.__creator: GeometryAnaliserCreator = GeometryAnaliserCreator.getInstance()
-        self.__postgress: PostgressClient = PostgressClient.getInstance()
-        self.__materialService: MaterialService = MaterialService.getInstance()
-        self.__costService: CostService = CostService.getInstance()
+    def __init__(
+        self,
+        storage: StorageService,
+        creator: GeometryAnaliserCreator,
+        postgress: PostgressClient,
+        material_service: MaterialService,
+        cost_service: CostService
+    ):
+        self.__storage = storage
+        self.__creator = creator
+        self.__postgress = postgress
+        self.__materialService = material_service
+        self.__costService = cost_service
         self.__logger = logging.getLogger("FileService")
 
     def __single_result_or_http_error(
@@ -210,3 +208,12 @@ class FileService:
 
     async def getPriceEstimate(self) -> str:
         return await self.__costService.getPriceEstimate()
+
+def get_file_service() -> FileService:
+    return FileService(
+        storage=get_storage_service(),
+        creator=get_geometry_analiser_creator(),
+        postgress=get_postgress_client(),
+        material_service=get_material_service(),
+        cost_service=get_cost_service()
+    )

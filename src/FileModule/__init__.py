@@ -1,47 +1,85 @@
-from fastapi import APIRouter, UploadFile, Depends
+from fastapi import APIRouter, UploadFile, Depends, HTTPException
 from src.UserModule.dtos import UserToken
-from src.autentification.AuthService import AuthService
-from src.FileModule.fileService import FileService
+from src.FileModule.fileService import FileService, get_file_service
+from src.UserModule import get_current_user, get_current_admin_user
 from typing import Annotated
+from src.autentification.Segurity import Segurity, get_segurity
+from src.UserModule.UserService import UserService, get_user_service
+from authlib.jose.errors import ExpiredTokenError
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from src.autentification.enums import ExceptionsEnum
 
 router = APIRouter(prefix="/file", tags=["files"])
 
-authService = AuthService.getInstance()
-
-fileService: FileService = FileService.getInstance()
-
 @router.get("")
-async def getAllUserInfoFiles(u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getAllUserInfoFiles(u)
+async def getAllUserInfoFiles(
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getAllUserInfoFiles(u)
 
 @router.post("/save")
-async def saveFile(file: UploadFile, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.saveFile(file, u)
+async def saveFile(
+    file: UploadFile,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.saveFile(file, u)
 
 @router.get("/metadata")
-async def getFileMetadata(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getFileInfo(id, u)
+async def getFileMetadata(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getFileInfo(id, u)
 
 @router.get("/donwload")
-async def getFile(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getFile(id, u)
+async def getFile(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getFile(id, u)
 
 @router.get("/image")
-async def getImage(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getImage(id, u)
+async def getImage(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getImage(id, u)
 
 @router.delete("")
-async def deleteFile(id: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    await fileService.deleteFile(id, u)
+async def deleteFile(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    await file_service.deleteFile(id, u)
     
 @router.get("/price")
-async def getPrice(id: str, materialId: str, thicknessId: str, amount: str, u: Annotated[UserToken, Depends(authService.setUser)]):
-    return await fileService.getPrice(id, materialId, thicknessId, int(amount), u)
+async def getPrice(
+    id: str,
+    materialId: str,
+    thicknessId: str,
+    amount: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getPrice(id, materialId, thicknessId, int(amount), u)
 
 @router.post("/price")
-async def setPriceCalculator(exp: str, u: Annotated[UserToken, Depends(authService.setUserAdmin)]):
-    await fileService.setPriceCalculator(exp)
+async def setPriceCalculator(
+    exp: str,
+    u: Annotated[UserToken, Depends(get_current_admin_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    await file_service.setPriceCalculator(exp)
     
 @router.get("/price/estimate")
-async def getPriceEstimate(u: Annotated[UserToken, Depends(authService.setUserAdmin)]):
-    return await fileService.getPriceEstimate()
+async def getPriceEstimate(
+    u: Annotated[UserToken, Depends(get_current_admin_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getPriceEstimate()

@@ -1,22 +1,14 @@
 from src.MaterialModule.dtos import Material, Thickness
 from src.MaterialModule.enums import MaterialSql
-from src.utils.PostgressClient import PostgressClient
+from src.utils.PostgressClient import PostgressClient, get_postgress_client
 import logging
 import asyncpg # type: ignore
 from fastapi import HTTPException
 
 class MaterialService:
     
-    __instance: 'MaterialService | None' = None
-    
-    @staticmethod
-    def getInstance()->'MaterialService':
-        if MaterialService.__instance is None:
-            MaterialService.__instance = MaterialService()
-        return MaterialService.__instance
-    
-    def __init__(self):
-        self.__postgress = PostgressClient.getInstance()
+    def __init__(self, postgress: PostgressClient):
+        self.__postgress = postgress
         self.__logger = logging.getLogger("MaterialService")
         
     async def getMtIdByMaterialIdThicknessId(self, materialId: str | int, thicknessId: str | int)-> int | str | None:
@@ -170,3 +162,6 @@ class MaterialService:
         except Exception as e:
             self.__logger.info(str(e))
             raise
+
+def get_material_service() -> MaterialService:
+    return MaterialService(postgress=get_postgress_client())

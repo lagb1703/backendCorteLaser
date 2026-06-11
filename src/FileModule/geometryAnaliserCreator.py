@@ -2,10 +2,9 @@ from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.geometriesAnalizer import GeometriesAnaliser
 from src.FileModule.implements import ShapelyAnalizer, DxfAdapter, WKBAdapter
 from typing import Any
+from functools import lru_cache
 
 class GeometryAnaliserCreator:
-    
-    __instance: 'GeometryAnaliserCreator | None' = None
     
     def __init__(self):
         self.__filesToGeometries: dict[str, GeometriesAdapter[Any]] = {
@@ -19,9 +18,7 @@ class GeometryAnaliserCreator:
             raise ValueError(f"Unsupported file extension: {extention}")
         poligons = adapter.makeGeometries(data)
         return ShapelyAnalizer(poligons)
-    
-    @staticmethod
-    def getInstance():
-        if GeometryAnaliserCreator.__instance is None:
-            GeometryAnaliserCreator.__instance = GeometryAnaliserCreator()
-        return GeometryAnaliserCreator.__instance
+
+@lru_cache()
+def get_geometry_analiser_creator() -> GeometryAnaliserCreator:
+    return GeometryAnaliserCreator()

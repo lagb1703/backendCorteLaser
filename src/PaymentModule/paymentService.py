@@ -1,36 +1,36 @@
-from src.utils.PostgressClient import PostgressClient
+from src.utils.PostgressClient import PostgressClient, get_postgress_client
 from src.UserModule.dtos import UserToken
-from src.FileModule.fileService import FileService
+from src.FileModule.fileService import FileService, get_file_service
 from src.PaymentModule.wompiWapper import WompiWapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
 from typing import Any
 from fastapi import Response, Request
 from src.PaymentModule.enums import PaymentStatus, PaymentSql
-from src.utils.EmailClient import EmailClient
+from src.utils.EmailClient import EmailClient, get_email_client
 from src.CmrModule.CmrService import CmrService, get_cmr_service
 from email.message import EmailMessage
 from json import loads, dumps
 from src.utils import Enviroment
 from src.utils.enums import EnviromentsEnum
 import uuid
+
 class PaymentService:
     
-    __instance: 'PaymentService | None' = None
-    
-    @staticmethod
-    def getInstance()->'PaymentService':
-        if PaymentService.__instance is None:
-            PaymentService.__instance = PaymentService()
-        return PaymentService.__instance
-    
-    def __init__(self):
-        e: Enviroment = Enviroment.getInstance()
-        self.__postgress: PostgressClient = PostgressClient.getInstance()
-        self.__fileService: FileService = FileService.getInstance()
-        self.__wompiWapper: WompiWapper = WompiWapper()
-        self.__emailClient: EmailClient = EmailClient()
-        self.__bussinessEmail: str = e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
-        self.__cmrService: CmrService = get_cmr_service()
+    def __init__(
+        self,
+        postgress: PostgressClient,
+        file_service: FileService,
+        wompi_wapper: WompiWapper,
+        email_client: EmailClient,
+        cmr_service: CmrService,
+        business_email: str
+    ):
+        self.__postgress = postgress
+        self.__fileService = file_service
+        self.__wompiWapper = wompi_wapper
+        self.__emailClient = email_client
+        self.__bussinessEmail = business_email
+        self.__cmrService = cmr_service
         
     async def __getPaymentInfoByReference(self, reference: str)->dict[str, Any]:
         rows = await self.__postgress.query(PaymentSql.getPaymentInfoByReference.value, [reference])
@@ -44,7 +44,6 @@ class PaymentService:
                 return loads(raw)
             except Exception:
                 return {}
-        # Si ya es JSON/objeto, devolver tal cual
         return raw
         
     async def __makeDatabsePayment(self, payment: PaymentType, amount: int, user: UserToken)->str:
@@ -187,3 +186,14 @@ class PaymentService:
         """)
         await self.__emailClient.send(email)
         return
+
+def get_payment_service() -> PaymentService:
+    e = Enviroment.getInstance()
+    return PaymentService(
+        postgress=get_postgress_client(),
+        file_service=get_file_service(),
+        wompi_wapper=WompiWapper(),
+        email_client=get_email_client(),
+        cmr_service=get_cmr_service(),
+        business_email=e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
+    )

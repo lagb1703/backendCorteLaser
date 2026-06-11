@@ -9,18 +9,9 @@ if TYPE_CHECKING:
 
 class Segurity:
     
-    __instance: 'Segurity | None' = None
-    
-    @staticmethod
-    def getInstance()->'Segurity':
-        if Segurity.__instance is None:
-            Segurity.__instance = Segurity()
-        return Segurity.__instance
-    
-    def __init__(self):
+    def __init__(self, jwt_key: str):
         from src.UserModule.dtos import UserToken
-        e = Enviroment.getInstance()
-        self.__jwt = JWTWarpper(e.get(EnviromentsEnum.JWT_KEY.value))
+        self.__jwt = JWTWarpper(jwt_key)
         self.__tokenDto = UserToken
         
     def validateToken(self, token: str | bytes)->bool:
@@ -40,4 +31,7 @@ class Segurity:
         
     def refreshToken(self, token: str | bytes) -> str | bytes:
         return self.__jwt.refresh(token)
-        
+
+def get_segurity() -> Segurity:
+    e = Enviroment.getInstance()
+    return Segurity(jwt_key=e.get(EnviromentsEnum.JWT_KEY.value))

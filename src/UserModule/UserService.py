@@ -1,29 +1,25 @@
-from fastapi import HTTPException
-from src.utils.PostgressClient import PostgressClient
+from src.utils.PostgressClient import PostgressClient, get_postgress_client
 from src.UserModule.dtos import User, UserToken, IdentificationType
 from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
-from src.utils.EmailClient import EmailClient
+from src.utils.EmailClient import EmailClient, get_email_client
 from src.CmrModule.CmrService import CmrService, get_cmr_service
 from email.message import EmailMessage
 from asyncpg.exceptions import UniqueViolationError # type: ignore
-
 import logging
+
 class UserService:
     
-    __instance: 'UserService | None' = None
-    
-    @staticmethod
-    def getInstance():
-        if UserService.__instance == None:
-            UserService.__instance = UserService()
-        return UserService.__instance
-    
-    def __init__(self):
-        self.__postgress: PostgressClient = PostgressClient.getInstance()
+    def __init__(
+        self,
+        postgress: PostgressClient,
+        email_client: EmailClient,
+        cmr_service: CmrService
+    ):
+        self.__postgress = postgress
         self.__logger = logging.getLogger("UserService")
-        self.__emailClient: EmailClient = EmailClient()
-        self.__cmrService: CmrService = get_cmr_service()
+        self.__emailClient = email_client
+        self.__cmrService = cmr_service
         
     async def login(self, userName: str, password: str)->UserToken:
         try:
@@ -107,3 +103,12 @@ class UserService:
         except Exception as e:
             self.__logger.info(str(e))
             raise 
+
+from fastapi import HTTPException
+
+def get_user_service() -> UserService:
+    return UserService(
+        postgress=get_postgress_client(),
+        email_client=get_email_client(),
+        cmr_service=get_cmr_service()
+    )
