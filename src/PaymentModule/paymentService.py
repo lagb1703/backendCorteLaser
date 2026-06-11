@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import Response, Request
 from src.PaymentModule.enums import PaymentStatus, PaymentSql
 from src.utils.EmailClient import EmailClient
-from src.CmrModule.CmrService import CmrService
+from src.CmrModule.CmrService import CmrService, get_cmr_service
 from email.message import EmailMessage
 from json import loads, dumps
 from src.utils import Enviroment
@@ -30,7 +30,7 @@ class PaymentService:
         self.__wompiWapper: WompiWapper = WompiWapper()
         self.__emailClient: EmailClient = EmailClient()
         self.__bussinessEmail: str = e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
-        self.__cmrService: CmrService = CmrService.getInstance()
+        self.__cmrService: CmrService = get_cmr_service()
         
     async def __getPaymentInfoByReference(self, reference: str)->dict[str, Any]:
         rows = await self.__postgress.query(PaymentSql.getPaymentInfoByReference.value, [reference])

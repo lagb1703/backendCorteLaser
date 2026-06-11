@@ -4,7 +4,7 @@ from src.UserModule.dtos import User, UserToken, IdentificationType
 from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
 from src.utils.EmailClient import EmailClient
-from src.CmrModule.CmrService import CmrService
+from src.CmrModule.CmrService import CmrService, get_cmr_service
 from email.message import EmailMessage
 from asyncpg.exceptions import UniqueViolationError # type: ignore
 
@@ -23,7 +23,7 @@ class UserService:
         self.__postgress: PostgressClient = PostgressClient.getInstance()
         self.__logger = logging.getLogger("UserService")
         self.__emailClient: EmailClient = EmailClient()
-        self.__cmrService: CmrService = CmrService.getInstance()
+        self.__cmrService: CmrService = get_cmr_service()
         
     async def login(self, userName: str, password: str)->UserToken:
         try:
