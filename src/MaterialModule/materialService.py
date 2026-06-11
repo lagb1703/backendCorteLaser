@@ -1,19 +1,19 @@
 from src.MaterialModule.dtos import Material, Thickness
 from src.MaterialModule.enums import MaterialSql
-from src.utils.PostgressClient import PostgressClient, get_postgress_client
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 import logging
 import asyncpg # type: ignore
 from fastapi import HTTPException
 
 class MaterialService:
     
-    def __init__(self, postgress: PostgressClient):
-        self.__postgress = postgress
+    def __init__(self, postgres: PostgresClient):
+        self.__postgres = postgres
         self.__logger = logging.getLogger("MaterialService")
         
     async def getMtIdByMaterialIdThicknessId(self, materialId: str | int, thicknessId: str | int)-> int | str | None:
         try:
-            return (await self.__postgress.query(MaterialSql.getMtIdByMaterialIdThicknessId.value, [int(materialId), int(thicknessId)]))[0]["FU_MA_MATERIALPKG_GETMTBYUSERIDMATERIALIDTHICKNESSID"]
+            return (await self.__postgres.query(MaterialSql.getMtIdByMaterialIdThicknessId.value, [int(materialId), int(thicknessId)]))[0]["FU_MA_MATERIALPKG_GETMTBYUSERIDMATERIALIDTHICKNESSID"]
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -21,7 +21,7 @@ class MaterialService:
         
     async def getAllMaterials(self)->list[Material]:
         try:
-            materials = await self.__postgress.query(MaterialSql.getAllMaterials.value, [])
+            materials = await self.__postgres.query(MaterialSql.getAllMaterials.value, [])
             return [Material.model_validate(m) for m in materials]
         except Exception as e:
             self.__logger.info(str(e))
@@ -30,7 +30,7 @@ class MaterialService:
     
     async def getAllThickness(self)->list[Thickness]:
         try:
-            thickness = await self.__postgress.query(MaterialSql.getAllThickness.value, [])
+            thickness = await self.__postgres.query(MaterialSql.getAllThickness.value, [])
             return [Thickness.model_validate(t) for t in thickness]
         except Exception as e:
             self.__logger.info(str(e))
@@ -38,7 +38,7 @@ class MaterialService:
     
     async def getMaterialById(self, materialId: str | int)->Material:
         try:
-            material = (await self.__postgress.query(MaterialSql.getMaterialById.value, [int(materialId)]))[0]
+            material = (await self.__postgres.query(MaterialSql.getMaterialById.value, [int(materialId)]))[0]
             return Material.model_validate(material)
         except Exception as e:
             self.__logger.info(str(e))
@@ -46,7 +46,7 @@ class MaterialService:
     
     async def getThicknessById(self, thicknessId: str | int)->Thickness:
         try:
-            thickness = (await self.__postgress.query(MaterialSql.getThicknessById.value, [int(thicknessId)]))[0]
+            thickness = (await self.__postgres.query(MaterialSql.getThicknessById.value, [int(thicknessId)]))[0]
             return Thickness.model_validate(thickness)
         except Exception as e:
             self.__logger.info(str(e))
@@ -54,7 +54,7 @@ class MaterialService:
     
     async def getThicknessByMaterial(self, materialId: str)->list[Thickness]:
         try:
-            thickness = await self.__postgress.query(MaterialSql.getAllThicknessByMaterialId.value, [int(materialId)])
+            thickness = await self.__postgres.query(MaterialSql.getAllThicknessByMaterialId.value, [int(materialId)])
             return [Thickness.model_validate(t) for t in thickness]
         except Exception as e:
             self.__logger.info(str(e))
@@ -62,7 +62,7 @@ class MaterialService:
         
     async def getThicknessNoLinkedToMaterial(self, materialId: str | int)-> list[Thickness]:
         try:
-            thickness = await self.__postgress.query(MaterialSql.getThicknessNoLinkedToMaterial.value, [int(materialId)])
+            thickness = await self.__postgres.query(MaterialSql.getThicknessNoLinkedToMaterial.value, [int(materialId)])
             return [Thickness.model_validate(t) for t in thickness]
         except Exception as e:
             self.__logger.info(str(e))
@@ -71,7 +71,7 @@ class MaterialService:
     async def addNewMaterial(self, material: Material)->str | int:
         try:
             material.weight = int(material.weight)
-            return (await self.__postgress.save(MaterialSql.addNewMaterial.value, material.__dict__))["p_id"]
+            return (await self.__postgres.save(MaterialSql.addNewMaterial.value, material.__dict__))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Registro duplicado")
@@ -82,7 +82,7 @@ class MaterialService:
     
     async def addNewThickness(self, thickness: Thickness)->str | int:
         try:
-            return (await self.__postgress.save(MaterialSql.addNewThickness.value, thickness.__dict__))["p_id"]
+            return (await self.__postgres.save(MaterialSql.addNewThickness.value, thickness.__dict__))["p_id"]
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Registro duplicado")
@@ -93,7 +93,7 @@ class MaterialService:
     async def changeMaterial(self, materialId: str, material: Material)->None:
         try:
             material.weight = int(material.weight)
-            await self.__postgress.update(MaterialSql.changeMaterial.value, material.__dict__,materialId)
+            await self.__postgres.update(MaterialSql.changeMaterial.value, material.__dict__,materialId)
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Nombre del material duplicado")
@@ -103,7 +103,7 @@ class MaterialService:
     
     async def changeThickness(self, thicknessId: str, thickness: Thickness)->None:
         try:
-            await self.__postgress.update(MaterialSql.changeThickness.value, thickness.__dict__,thicknessId)
+            await self.__postgres.update(MaterialSql.changeThickness.value, thickness.__dict__,thicknessId)
         except asyncpg.exceptions.UniqueViolationError as e:
             self.__logger.info(f"Unique violation: {e}")
             raise HTTPException(status_code=409, detail="Nombre del thickness duplicado")
@@ -113,7 +113,7 @@ class MaterialService:
     
     async def addMaterialThickness(self, materialId: str, thicknessId: str, speed: float)->int | str:
         try:
-            return (await self.__postgress.save(MaterialSql.addMaterialThickness.value, {
+            return (await self.__postgres.save(MaterialSql.addMaterialThickness.value, {
                     "materialId":materialId,
                     "thicknessId":thicknessId,
                     "speed": speed
@@ -132,7 +132,7 @@ class MaterialService:
             materialThicknessId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
             if materialThicknessId is None:
                 raise HTTPException(status_code=404, detail="Material thickness no encontrado")
-            await self.__postgress.update(MaterialSql.changeSpeedMaterialThickness.value, {
+            await self.__postgres.update(MaterialSql.changeSpeedMaterialThickness.value, {
                 "speed": speed
             }, materialThicknessId)
         except Exception as e:
@@ -144,24 +144,24 @@ class MaterialService:
             mtId = await self.getMtIdByMaterialIdThicknessId(materialId, thicknessId)
             if mtId is None:
                 return 
-            await self.__postgress.delete(MaterialSql.deleteMaterialThickness.value, mtId)
+            await self.__postgres.delete(MaterialSql.deleteMaterialThickness.value, mtId)
         except Exception as e:
             self.__logger.info(str(e))
             raise
     
     async def deleteMaterial(self, materialId: str)->None:
         try:
-            await self.__postgress.delete(MaterialSql.deleteMaterial.value, materialId)
+            await self.__postgres.delete(MaterialSql.deleteMaterial.value, materialId)
         except Exception as e:
             self.__logger.info(str(e))
             raise
     
     async def deleteThickness(self, thicknessId: str)->None:
         try:
-            await self.__postgress.delete(MaterialSql.deleteThickness.value, thicknessId)
+            await self.__postgres.delete(MaterialSql.deleteThickness.value, thicknessId)
         except Exception as e:
             self.__logger.info(str(e))
             raise
 
 def get_material_service() -> MaterialService:
-    return MaterialService(postgress=get_postgress_client())
+    return MaterialService(postgres=get_postgres_client())

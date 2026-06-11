@@ -47,9 +47,9 @@ class Bitrix24(CmrApi):
         }
         print(data)
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resoponse = await client.post(url, json=data)
-            if resoponse.status_code == 200:
-                respData = resoponse.json()
+            response = await client.post(url, json=data)
+            if response.status_code == 200:
+                respData = response.json()
                 print(respData)
                 return str(respData.get("result", ""))
         return ""

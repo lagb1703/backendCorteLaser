@@ -3,7 +3,7 @@ from src.UserModule.dtos import UserToken
 from src.FileModule.fileService import FileService, get_file_service
 from src.UserModule import get_current_user, get_current_admin_user
 from typing import Annotated
-from src.autentification.Segurity import Segurity, get_segurity
+from src.autentification.Security import Security, get_security
 from src.UserModule.UserService import UserService, get_user_service
 from authlib.jose.errors import ExpiredTokenError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials

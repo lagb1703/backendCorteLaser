@@ -1,6 +1,6 @@
 from enum import Enum
 
-class EnviromentsEnum(Enum):
+class EnvironmentsEnum(Enum):
     DB_USER = "DB_USER"
     DB_PASSWORD = "DB_PASSWORD"
     DB_HOST = "DB_HOST"
@@ -26,4 +26,4 @@ class EnviromentsEnum(Enum):
     CRM_CUSTOM_IDENTIFICATION_FIELD="CRM_CUSTOM_IDENTIFICATION_FIELD"
     
 class ExceptionsEnum(Enum):
-    NOT_ENVIROMENT_VARIABLE_AVABLE = "No se encontro la variable de entorno :variable"
+    NOT_ENVIRONMENT_VARIABLE_AVAILABLE = "No se encontro la variable de entorno :variable"

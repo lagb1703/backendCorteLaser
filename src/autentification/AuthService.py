@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import Any, TYPE_CHECKING
-from src.autentification.Segurity import Segurity, get_segurity
+from src.autentification.Security import Security, get_security
 from fastapi import HTTPException
 from starlette.requests import Request
 from src.autentification.enums import ExceptionsEnum
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 from authlib.integrations.starlette_client import OAuth  # type: ignore
 from fastapi.responses import RedirectResponse
 from src.UserModule.UserService import UserService, get_user_service
@@ -15,15 +15,15 @@ if TYPE_CHECKING:
 
 class AuthService:
     
-    def __init__(self, segurity: Segurity, user_service: UserService):
-        e = Enviroment.getInstance()
-        self.__segurity = segurity
+    def __init__(self, security: Security, user_service: UserService):
+        e = Environment.getInstance()
+        self.__security = security
         self.__userService = user_service
         self.__oauth = OAuth()
         self.__oauth.register( # type: ignore
             name="google",
-            client_id=e.get(EnviromentsEnum.GOOGLE_CLIENT_ID.value),
-            client_secret=e.get(EnviromentsEnum.GOOGLE_CLIENT_SECRET.value),
+            client_id=e.get(EnvironmentsEnum.GOOGLE_CLIENT_ID.value),
+            client_secret=e.get(EnvironmentsEnum.GOOGLE_CLIENT_SECRET.value),
             server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
             client_kwargs={
                 "scope": "openid email profile"
@@ -32,7 +32,7 @@ class AuthService:
         
     async def login(self, userName: str, password: str)->str | bytes:
         user = await self.__userService.login(userName, password)
-        return self.__segurity.getToken(user)
+        return self.__security.getToken(user)
     
     async def loginGoogle(self, request: Request)-> Any:
         redirect_uri = request.url_for("auth_google_callback")
@@ -48,21 +48,21 @@ class AuthService:
             if not email or not isinstance(email, str):
                 raise HTTPException(status_code=400, detail=ExceptionsEnum.NO_TOKEN.value)
             from src.UserModule.dtos import UserToken
-            e = Enviroment.getInstance()
+            e = Environment.getInstance()
             user = await self.__userService.getUserByEmail(email)
             if user.id is None:
                 raise HTTPException(404, "usuario no encontrado")
             t: UserToken = UserToken(id=user.id, email=email, isAdmin=user.isAdmin)
-            return RedirectResponse(f"{e.get(EnviromentsEnum.GOOGLE_CALLBACK_URL.value)}?token={str(self.__segurity.getToken(t))}")
+            return RedirectResponse(f"{e.get(EnvironmentsEnum.GOOGLE_CALLBACK_URL.value)}?token={str(self.__security.getToken(t))}")
 
         except Exception as e:
             raise HTTPException(status_code=400, detail=ExceptionsEnum.GOOGLE_AUTH_ERROR.value.replace(":Error", str(e)))
         
     def refreshToken(self, token: str) -> str | bytes:
-        return self.__segurity.refreshToken(token)
+        return self.__security.refreshToken(token)
 
 def get_auth_service() -> AuthService:
     return AuthService(
-        segurity=get_segurity(),
+        security=get_security(),
         user_service=get_user_service()
     )

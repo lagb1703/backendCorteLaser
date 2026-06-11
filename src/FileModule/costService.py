@@ -1,5 +1,5 @@
 from src.FileModule.astEval import AstEval
-from src.utils.PostgressClient import PostgressClient, get_postgress_client
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 from src.FileModule.enums import CostSql
 import ast
 from src.FileModule.interfaces import PriceElements
@@ -8,16 +8,16 @@ class CostService:
 
     tree: ast.Expression | None = None
 
-    def __init__(self, postgress_client: PostgressClient) -> None:
-        self.__postgressClient = postgress_client
+    def __init__(self, postgres_client: PostgresClient) -> None:
+        self.__postgresClient = postgres_client
 
     async def __setEstimate(self, exp: str) -> None:
         data: dict[str, str] = {"estimatic": exp}
         print(data)
-        await self.__postgressClient.save(CostSql.newEstimate.value, data)
+        await self.__postgresClient.save(CostSql.newEstimate.value, data)
 
     async def getPriceEstimate(self) -> str:
-        return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0][
+        return (await self.__postgresClient.query(CostSql.getPrice.value, []))[0][
             "estimatic"
         ].replace('"', "")
 
@@ -38,4 +38,4 @@ class CostService:
         await self.__setEstimate(exp)
 
 def get_cost_service() -> CostService:
-    return CostService(postgress_client=get_postgress_client())
+    return CostService(postgres_client=get_postgres_client())

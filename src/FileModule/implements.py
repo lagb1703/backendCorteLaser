@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from src.FileModule.geometriesAnalizer import GeometriesAnaliser
+from src.FileModule.geometriesAnalyzer import GeometriesAnalyzer
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
@@ -13,7 +13,7 @@ from ezdxf_shapely import polygonize # type: ignore
 from ezdxf import path
 from shapely.geometry import LineString
 
-class ShapelyAnalizer(GeometriesAnaliser):
+class ShapelyAnalyzer(GeometriesAnalyzer):
     
     def __init__(self, geometries: list[Polygon]):
         self.__geometries = gpd.GeoSeries(geometries)
@@ -34,7 +34,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
                 overlaps.append((i, j))
         return validGeometry and len(overlaps) == 0
     
-    def getMinimunRectangle(self)->tuple[float, float, float, float]:
+    def getMinimumRectangle(self)->tuple[float, float, float, float]:
         union = self.__geometries.unary_union # type: ignore
         rect = union.minimum_rotated_rectangle
         minx, miny, maxx, maxy = rect.bounds

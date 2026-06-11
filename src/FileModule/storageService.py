@@ -1,10 +1,10 @@
 from fastapi import HTTPException
-from src.FileModule.storageWapper import StorageWapper, get_storage_wapper
+from src.FileModule.storageWrapper import StorageWrapper, get_storage_wrapper
 from src.FileModule.enums import ExceptionsEnum
 
 class StorageService:
     
-    def __init__(self, storage: StorageWapper):
+    def __init__(self, storage: StorageWrapper):
         self.__storage = storage
         
     def upload(self, data: bytes, name: str, folder: str, content_type: str | None = None)->None:
@@ -18,4 +18,4 @@ class StorageService:
         self.__storage.delete(f"{folder}/{name}")
 
 def get_storage_service() -> StorageService:
-    return StorageService(storage=get_storage_wapper())
+    return StorageService(storage=get_storage_wrapper())

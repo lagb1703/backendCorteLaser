@@ -1,4 +1,5 @@
-from src.utils.PostgressClient import PostgressClient, get_postgress_client
+from fastapi import HTTPException
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 from src.UserModule.dtos import User, UserToken, IdentificationType
 from hashlib import sha256
 from src.UserModule.enums import UserSql, ExceptionsEnum
@@ -12,11 +13,11 @@ class UserService:
     
     def __init__(
         self,
-        postgress: PostgressClient,
+        postgres: PostgresClient,
         email_client: EmailClient,
         cmr_service: CmrService
     ):
-        self.__postgress = postgress
+        self.__postgres = postgres
         self.__logger = logging.getLogger("UserService")
         self.__emailClient = email_client
         self.__cmrService = cmr_service
@@ -24,7 +25,7 @@ class UserService:
     async def login(self, userName: str, password: str)->UserToken:
         try:
             passSha256: str = sha256(password.encode('utf-8')).hexdigest()
-            user = await self.__postgress.query(UserSql.login.value, [userName, passSha256])
+            user = await self.__postgres.query(UserSql.login.value, [userName, passSha256])
             if len(user) == 0:
                 raise HTTPException(status_code=401, detail="Usuario o contraseña inválidos")
             return UserToken.model_validate(user[0])
@@ -38,7 +39,7 @@ class UserService:
     async def register(self, user: User)->bool:
         try:
             user.password = sha256(user.password.encode('utf-8')).hexdigest()
-            id: int | str | None = (await self.__postgress.save(UserSql.register.value, user.__dict__))["p_id"]
+            id: int | str | None = (await self.__postgres.save(UserSql.register.value, user.__dict__))["p_id"]
             if id is None:
                 raise HTTPException(400, "")
             email = EmailMessage()
@@ -58,16 +59,16 @@ class UserService:
     
     async def getAllUser(self)->list[User]:
         try:
-            rows = await self.__postgress.query(UserSql.getAllUser.value, [])
+            rows = await self.__postgres.query(UserSql.getAllUser.value, [])
             users: list[User] = [User.model_validate(r) for r in rows]
             return users
         except Exception as e:
             self.__logger.info(str(e))
             raise 
     
-    async def getUSerById(self, id: str | int)->User:
+    async def getUserById(self, id: str | int)->User:
         try:
-            rows = await self.__postgress.query(UserSql.getUSerById.value, [int(id)])
+            rows = await self.__postgres.query(UserSql.getUserById.value, [int(id)])
             if len(rows) == 0:
                 raise HTTPException(404, "No se ha detectado un usuario valido")
             return User.model_validate(rows[0])
@@ -77,7 +78,7 @@ class UserService:
         
     async def getUserByEmail(self, email: str)->User:
         try:
-            rows = await self.__postgress.query(UserSql.getUSerByEmail.value, [email])
+            rows = await self.__postgres.query(UserSql.getUserByEmail.value, [email])
             if len(rows) == 0:
                 raise HTTPException(404, "No se ha detectado un usuario valido")
             return User.model_validate(rows[0])
@@ -88,7 +89,7 @@ class UserService:
         
     async def changeAddress(self, address: str, user: UserToken)->None:
         try:
-            await self.__postgress.update(UserSql.changeAddress.value, {
+            await self.__postgres.update(UserSql.changeAddress.value, {
                 "address": address
             }, user.id)
         except Exception as e:
@@ -97,18 +98,16 @@ class UserService:
         
     async def getAllIdentificationTypes(self)->list[IdentificationType]:
         try:
-            rows = await self.__postgress.query(UserSql.getAllIdentificationTypes.value, [])
+            rows = await self.__postgres.query(UserSql.getAllIdentificationTypes.value, [])
             identificationTypes: list[IdentificationType] = [IdentificationType.model_validate(r) for r in rows]
             return identificationTypes
         except Exception as e:
             self.__logger.info(str(e))
             raise 
 
-from fastapi import HTTPException
-
 def get_user_service() -> UserService:
     return UserService(
-        postgress=get_postgress_client(),
+        postgres=get_postgres_client(),
         email_client=get_email_client(),
         cmr_service=get_cmr_service()
     )

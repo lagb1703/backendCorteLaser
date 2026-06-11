@@ -1,4 +1,4 @@
-from src.FileModule.geometryAnaliserCreator import GeometryAnaliserCreator, get_geometry_analiser_creator
+from src.FileModule.geometryAnalyzerCreator import GeometryAnalyzerCreator, get_geometry_analyzer_creator
 from src.FileModule.storageService import StorageService, get_storage_service
 from src.FileModule.enums import ExceptionsEnum, FileSql, FolderName
 from src.FileModule.interfaces import PriceElements
@@ -9,7 +9,7 @@ from fastapi import HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from typing import Any
 from src.FileModule.dtos import FileDb, PriceResponse
-from src.utils.PostgressClient import PostgressClient, get_postgress_client
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 from io import BytesIO
 import hashlib
 import logging
@@ -21,14 +21,14 @@ class FileService:
     def __init__(
         self,
         storage: StorageService,
-        creator: GeometryAnaliserCreator,
-        postgress: PostgressClient,
+        creator: GeometryAnalyzerCreator,
+        postgres: PostgresClient,
         material_service: MaterialService,
         cost_service: CostService
     ):
         self.__storage = storage
         self.__creator = creator
-        self.__postgress = postgress
+        self.__postgres = postgres
         self.__materialService = material_service
         self.__costService = cost_service
         self.__logger = logging.getLogger("FileService")
@@ -44,7 +44,7 @@ class FileService:
 
     async def getFileInfo(self, id: str | int, user: UserToken) -> FileDb:
         try:
-            rows = await self.__postgress.query(FileSql.getFileById.value, [int(id)])
+            rows = await self.__postgres.query(FileSql.getFileById.value, [int(id)])
             file = self.__single_result_or_http_error(
                 rows, f"Archivo con id {id} no encontrado"
             )
@@ -60,7 +60,7 @@ class FileService:
         try:
             fileDb.userId = user.id
             return (
-                await self.__postgress.save(FileSql.saveFile.value, fileDb.__dict__)
+                await self.__postgres.save(FileSql.saveFile.value, fileDb.__dict__)
             )["p_id"]
         except Exception as e:
             self.__logger.info(str(e))
@@ -68,7 +68,7 @@ class FileService:
 
     async def __deleteFileInfo(self, id: str | int) -> None:
         try:
-            await self.__postgress.delete(FileSql.deleteFile.value, id)
+            await self.__postgres.delete(FileSql.deleteFile.value, id)
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -146,7 +146,7 @@ class FileService:
 
     async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
-            rows = await self.__postgress.query(
+            rows = await self.__postgres.query(
                 FileSql.getAllUserFiles.value, [user.id]
             )
             result: list[FileDb] = []
@@ -172,7 +172,7 @@ class FileService:
         )
         geo = self.__creator.createGeometry("wkb", fileWBT)
         perimeter = geo.getPerimeter()
-        minX, minY, maxX, maxY = geo.getMinimunRectangle()
+        minX, minY, maxX, maxY = geo.getMinimumRectangle()
         area = (maxX - minX) * (maxY - minY)
         mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(
             materialId, thicknessId
@@ -212,8 +212,8 @@ class FileService:
 def get_file_service() -> FileService:
     return FileService(
         storage=get_storage_service(),
-        creator=get_geometry_analiser_creator(),
-        postgress=get_postgress_client(),
+        creator=get_geometry_analyzer_creator(),
+        postgres=get_postgres_client(),
         material_service=get_material_service(),
         cost_service=get_cost_service()
     )

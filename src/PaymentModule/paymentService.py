@@ -1,7 +1,7 @@
-from src.utils.PostgressClient import PostgressClient, get_postgress_client
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 from src.UserModule.dtos import UserToken
 from src.FileModule.fileService import FileService, get_file_service
-from src.PaymentModule.wompiWapper import WompiWapper
+from src.PaymentModule.wompiWrapper import WompiWrapper
 from src.PaymentModule.dto import PaymentMethodType, AcceptanceTokens, PaymentType, DbPaymentType
 from typing import Any
 from fastapi import Response, Request
@@ -10,30 +10,30 @@ from src.utils.EmailClient import EmailClient, get_email_client
 from src.CmrModule.CmrService import CmrService, get_cmr_service
 from email.message import EmailMessage
 from json import loads, dumps
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 import uuid
 
 class PaymentService:
     
     def __init__(
         self,
-        postgress: PostgressClient,
+        postgres: PostgresClient,
         file_service: FileService,
-        wompi_wapper: WompiWapper,
+        wompi_wrapper: WompiWrapper,
         email_client: EmailClient,
         cmr_service: CmrService,
         business_email: str
     ):
-        self.__postgress = postgress
+        self.__postgres = postgres
         self.__fileService = file_service
-        self.__wompiWapper = wompi_wapper
+        self.__wompiWrapper = wompi_wrapper
         self.__emailClient = email_client
         self.__bussinessEmail = business_email
         self.__cmrService = cmr_service
         
     async def __getPaymentInfoByReference(self, reference: str)->dict[str, Any]:
-        rows = await self.__postgress.query(PaymentSql.getPaymentInfoByReference.value, [reference])
+        rows = await self.__postgres.query(PaymentSql.getPaymentInfoByReference.value, [reference])
         if not rows:
             return {}
         raw = rows[0].get("FU_PA_PAYMENTPKG_GETPAYMENTINFOBYREFERENCE")
@@ -56,21 +56,21 @@ class PaymentService:
                 "paymentMethodId": payment.paymentMethodId
             }
             print(dumps(data))
-            return (await self.__postgress.save(PaymentSql.savePayment.value, data))["p_id"]
+            return (await self.__postgres.save(PaymentSql.savePayment.value, data))["p_id"]
         except Exception as e:
             print(e)
             raise
         
     async def getPaymentMethods(self)->list[PaymentMethodType]:
         try:
-            rows = await self.__postgress.query(PaymentSql.getAllPaymentMethods.value, [])
+            rows = await self.__postgres.query(PaymentSql.getAllPaymentMethods.value, [])
             return [PaymentMethodType.model_validate(r) for r in rows]
         except Exception as e:
             print(e)
             raise
     
     async def getAcceptanceTokens(self)->AcceptanceTokens:
-        return await self.__wompiWapper.getAcceptanceTokens()
+        return await self.__wompiWrapper.getAcceptanceTokens()
     
     async def makePayment(self, payment: PaymentType, user: UserToken)->str:
         payment.userId = user.id
@@ -81,14 +81,14 @@ class PaymentService:
             price += filePrice.price
         price = int(price * 100)
         payment.amount_in_cents = price
-        result = await self.__wompiWapper.makePayment(payment, user.email)
+        result = await self.__wompiWrapper.makePayment(payment, user.email)
         payment.id = result.id
         payment.status = await self.verifyPayment(result.id)
         await self.__makeDatabsePayment(payment, price, user)
         return result.id
     
     async def verifyPayment(self, id: str)->str:
-        result = await self.__wompiWapper.verifyPayment(id)
+        result = await self.__wompiWrapper.verifyPayment(id)
         return result["status"]
     
     async def untilNotGetPending(self, id: str)->str:
@@ -100,7 +100,7 @@ class PaymentService:
     
     async def getPayments(self, userId: int)->list[DbPaymentType]:
         try:
-            rows = await self.__postgress.query(PaymentSql.getPaymentsByUserId.value, [int(userId)])
+            rows = await self.__postgres.query(PaymentSql.getPaymentsByUserId.value, [int(userId)])
             return [DbPaymentType.model_validate(r) for r in rows]
         except Exception as e:
             print(e)
@@ -188,12 +188,12 @@ class PaymentService:
         return
 
 def get_payment_service() -> PaymentService:
-    e = Enviroment.getInstance()
+    e = Environment.getInstance()
     return PaymentService(
-        postgress=get_postgress_client(),
+        postgres=get_postgres_client(),
         file_service=get_file_service(),
-        wompi_wapper=WompiWapper(),
+        wompi_wrapper=WompiWrapper(),
         email_client=get_email_client(),
         cmr_service=get_cmr_service(),
-        business_email=e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value)
+        business_email=e.get(EnvironmentsEnum.GOOGLE_MAIL_USER.value)
     )

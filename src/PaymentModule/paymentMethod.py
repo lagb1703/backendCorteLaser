@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from src.PaymentModule.dto import PaymentTypeResponse, PaymentType#, WompiTokenizerType
 from abc import ABC, abstractmethod
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
 from typing import Any
 import httpx
@@ -10,10 +10,10 @@ import httpx
 class PaymentMethod(ABC):
     
     def __init__(self):
-        e: Enviroment = Enviroment.getInstance()
-        self._link: str = e.get(EnviromentsEnum.WOMPY_URL.value)
-        self._pubKey: str = e.get(EnviromentsEnum.WOMPY_PUBLIC_KEY.value)
-        self._prKey: str = e.get(EnviromentsEnum.WOMPY_PRIVATE_KEY.value)
+        e: Environment = Environment.getInstance()
+        self._link: str = e.get(EnvironmentsEnum.WOMPY_URL.value)
+        self._pubKey: str = e.get(EnvironmentsEnum.WOMPY_PUBLIC_KEY.value)
+        self._prKey: str = e.get(EnvironmentsEnum.WOMPY_PRIVATE_KEY.value)
         
     async def _send(self, payload: dict[str, Any])->PaymentTypeResponse:
         url = f"{self._link}transactions"

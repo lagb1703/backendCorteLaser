@@ -1,5 +1,5 @@
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 from email.message import EmailMessage
 import aiosmtplib
 
@@ -17,11 +17,11 @@ class EmailClient:
         await aiosmtplib.send(message, hostname=self.__hostName, port=self.__port, username=self.__fromEmail, password=self.__password)
 
 def get_email_client() -> EmailClient:
-    e: Enviroment = Enviroment.getInstance()
+    e: Environment = Environment.getInstance()
     return EmailClient(
-        from_email=e.get(EnviromentsEnum.GOOGLE_MAIL_USER.value),
-        host_name=e.get(EnviromentsEnum.GOOGLE_MAIL_HOST.value),
-        port=int(e.get(EnviromentsEnum.GOOGLE_MAIL_PORT.value)),
-        secure=bool(e.get(EnviromentsEnum.GOOGLE_MAIL_SECURE.value)),
-        password=e.get(EnviromentsEnum.GOOGLE_MAIL_PASS.value)
+        from_email=e.get(EnvironmentsEnum.GOOGLE_MAIL_USER.value),
+        host_name=e.get(EnvironmentsEnum.GOOGLE_MAIL_HOST.value),
+        port=int(e.get(EnvironmentsEnum.GOOGLE_MAIL_PORT.value)),
+        secure=bool(e.get(EnvironmentsEnum.GOOGLE_MAIL_SECURE.value)),
+        password=e.get(EnvironmentsEnum.GOOGLE_MAIL_PASS.value)
     )
