@@ -1,4 +1,7 @@
-from src.FileModule.geometryAnalyzerCreator import GeometryAnalyzerCreator, get_geometry_analyzer_creator
+from src.FileModule.geometryAnalyzerCreator import (
+    GeometryAnalyzerCreator,
+    get_geometry_analyzer_creator,
+)
 from src.FileModule.storageService import StorageService, get_storage_service
 from src.FileModule.enums import ExceptionsEnum, FileSql, FolderName
 from src.FileModule.interfaces import PriceElements
@@ -16,6 +19,7 @@ import logging
 from asyncpg.exceptions import UniqueViolationError  # type: ignore
 from math import ceil
 
+
 class FileService:
 
     def __init__(
@@ -24,7 +28,7 @@ class FileService:
         creator: GeometryAnalyzerCreator,
         postgres: PostgresClient,
         material_service: MaterialService,
-        cost_service: CostService
+        cost_service: CostService,
     ):
         self.__storage = storage
         self.__creator = creator
@@ -50,7 +54,9 @@ class FileService:
             )
             file["date"] = str(file["date"]) if file.get("date") is not None else None
             if file.get("userId") != user.id and not user.isAdmin:
-                raise HTTPException(status_code=403, detail=ExceptionsEnum.NOT_AUTHORIZED.value)
+                raise HTTPException(
+                    status_code=403, detail=ExceptionsEnum.NOT_AUTHORIZED.value
+                )
             return FileDb.model_validate(file)
         except HTTPException:
             raise
@@ -61,7 +67,9 @@ class FileService:
     async def __saveFileInfo(self, fileDb: FileDb, user: UserToken) -> int | str:
         try:
             fileDb.userId = user.id
-            return (await self.__postgres.save(FileSql.saveFile.value, fileDb.model_dump()))["p_id"]
+            return (
+                await self.__postgres.save(FileSql.saveFile.value, fileDb.model_dump())
+            )["p_id"]
         except Exception as e:
             self.__logger.info(str(e))
             raise
@@ -146,9 +154,7 @@ class FileService:
 
     async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
-            rows = await self.__postgres.query(
-                FileSql.getAllUserFiles.value, [user.id]
-            )
+            rows = await self.__postgres.query(FileSql.getAllUserFiles.value, [user.id])
             result: list[FileDb] = []
             for r in rows:
                 r["date"] = str(r["date"])
@@ -174,11 +180,10 @@ class FileService:
         perimeter = geo.getPerimeter()
         minX, minY, maxX, maxY = geo.getMinimumRectangle()
         area = (maxX - minX) * (maxY - minY)
-        mtId = await self.__materialService.getMtIdByMaterialIdThicknessId(
-            materialId, thicknessId
-        )
         material = await self.__materialService.getMaterialById(materialId)
-        thickness = await self.__materialService.getMtByMaterialIdAndThicknessId(thicknessId, materialId)
+        thickness = await self.__materialService.getMtByMaterialIdAndThicknessId(
+            thicknessId, materialId
+        )
         if thickness.speed is None:
             thickness.speed = 1.0
         p = PriceElements(
@@ -189,16 +194,13 @@ class FileService:
             perimeter=perimeter,
             speed=thickness.speed,
             amount=amount,
-            blends=0
+            blends=0,
+            mtPrice=thickness.mtPrice
         )
         price = await self.__costService.getPrice(p)
         price = ceil(price * 100) / 100
         price = max(price, 1500)
-        return PriceResponse(
-            price=price,
-            area=area,
-            perimeter=perimeter
-        )
+        return PriceResponse(price=price, area=area, perimeter=perimeter)
 
     async def setPriceCalculator(self, exp: str) -> None:
         await self.__costService.setPriceCalculator(exp)
@@ -206,11 +208,12 @@ class FileService:
     async def getPriceEstimate(self) -> str:
         return await self.__costService.getPriceEstimate()
 
+
 def get_file_service() -> FileService:
     return FileService(
         storage=get_storage_service(),
         creator=get_geometry_analyzer_creator(),
         postgres=get_postgres_client(),
         material_service=get_material_service(),
-        cost_service=get_cost_service()
+        cost_service=get_cost_service(),
     )

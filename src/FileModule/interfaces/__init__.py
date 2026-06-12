@@ -8,4 +8,5 @@ class PriceElements(BaseModel):
     perimeter: float
     speed: float
     amount: int
+    mtPrice: int
     blends: int
