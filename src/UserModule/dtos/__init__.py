@@ -1,23 +1,22 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
 
 class User(BaseModel):
-    id: Optional[int] = None
+    id: int | None = None
     names: str
     lastNames: str
     email: EmailStr
     address: str
     password: str
     phone: int
-    isAdmin: Optional[bool] = False
+    isAdmin: bool | None = False
     identification: str
     identificationTypeId: int | str
-    identificationType: Optional[str] = None
+    identificationType: str | None = None
     
 class UserToken(BaseModel):
     id: int
     email: str
-    isAdmin: Optional[bool]
+    isAdmin: bool | None
     
 class IdentificationType(BaseModel):
     identificationTypeId: str | int

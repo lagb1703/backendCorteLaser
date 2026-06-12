@@ -1,30 +1,30 @@
 from fastapi import HTTPException
-from src.PaymentModule.dto import PaymentTypeResponse, PaymentType#, WompiTokenizerType
+from src.PaymentModule.dto import PaymentTypeResponse, PaymentType
 from abc import ABC, abstractmethod
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 from src.PaymentModule.enums import ExceptionsEnum
-from typing import Dict, Any, Union
+from typing import Any
 import hashlib
 import httpx
 
 class PaymentMethod(ABC):
     
     def __init__(self):
-        e: Enviroment = Enviroment.getInstance()
-        self._link: str = e.get(EnviromentsEnum.WOMPY_URL.value)
-        self._pubKey: str = e.get(EnviromentsEnum.WOMPY_PUBLIC_KEY.value)
-        self._prKey: str = e.get(EnviromentsEnum.WOMPY_PRIVATE_KEY.value)
-        self._signatureKey: str = e.get(EnviromentsEnum.WOMPY_INTEGRITY_KEY.value)
+        e: Environment = Environment.getInstance()
+        self._link: str = e.get(EnvironmentsEnum.WOMPY_URL.value)
+        self._pubKey: str = e.get(EnvironmentsEnum.WOMPY_PUBLIC_KEY.value)
+        self._prKey: str = e.get(EnvironmentsEnum.WOMPY_PRIVATE_KEY.value)
+        self._signatureKey: str = e.get(EnvironmentsEnum.WOMPY_INTEGRITY_KEY.value)
         
     def _generate_signature(self, amount_in_cents: int | None, currency: str, reference: str | None) -> str:
-        key: Union[str, tuple] = self._signatureKey # type: ignore
+        key: str | tuple = self._signatureKey  # type: ignore
         if isinstance(key, (tuple, list)):
             key = key[0]
         raw = f"{reference}{amount_in_cents}{currency}{key}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
         
-    async def _send(self, payload: Dict[str, Any])->PaymentTypeResponse:
+    async def _send(self, payload: dict[str, Any]) -> PaymentTypeResponse:
         url = f"{self._link}transactions"
         async with httpx.AsyncClient(timeout=15.0) as client:
             try:
@@ -55,7 +55,7 @@ class PaymentMethod(ABC):
             except Exception as e:
                 raise HTTPException(500, f"Error interno al generar pago: {str(e)}")
             
-    async def _getPaymentSourceId(self, payload: Dict[str, Any])-> int:
+    async def _getPaymentSourceId(self, payload: dict[str, Any]) -> int:
         url = f"{self._link}payment_sources"
         async with httpx.AsyncClient(timeout=15.0) as client:
             try:
@@ -83,21 +83,21 @@ class PaymentMethod(ABC):
         
     
     @abstractmethod
-    async def generatePayment(self, payment: PaymentType, userEmail: str)->PaymentTypeResponse:
+    async def generatePayment(self, payment: PaymentType, userEmail: str) -> PaymentTypeResponse:
         pass
     
     @abstractmethod
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any]) -> str:
         pass
     
 class CardMethod(PaymentMethod):
 
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any]) -> str:
         url = f"{self._link}tokens/cards"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 resp = await client.post(url=url, json=paymentInfo, headers={
-                    "Authorization":f"Bearer {self._pubKey}"
+                    "Authorization": f"Bearer {self._pubKey}"
                 })
                 resp.raise_for_status()
                 data = resp.json()
@@ -114,19 +114,19 @@ class CardMethod(PaymentMethod):
             except Exception as e:
                 raise HTTPException(500, f"Error interno al obtener acceptance tokens: {str(e)}")
 
-    async def generatePayment(self, payment: PaymentType, userEmail: str)->PaymentTypeResponse:
+    async def generatePayment(self, payment: PaymentType, userEmail: str) -> PaymentTypeResponse:
         if payment.card is None:
             raise HTTPException(400, ExceptionsEnum.NO_CARD_INFO.value)
         token = await self.tokenizer(payment.card.model_dump())
-        sourcePayload:Dict[str, str | int] = {
-            "type":payment.payment_method.type,
-            "token":token,
-            "acceptance_token":payment.acceptance_token,
+        sourcePayload: dict[str, str | int] = {
+            "type": payment.payment_method.type,
+            "token": token,
+            "acceptance_token": payment.acceptance_token,
             "customer_email": userEmail
         }
         paymentSourceId: int = await self._getPaymentSourceId(sourcePayload)
-        payload: Dict[str, Any] = {
-            "acceptance_token":payment.acceptance_token,
+        payload: dict[str, Any] = {
+            "acceptance_token": payment.acceptance_token,
             "amount_in_cents": payment.amount_in_cents,
             "currency": "COP",
             "customer_email": userEmail,
@@ -136,28 +136,27 @@ class CardMethod(PaymentMethod):
                 "installments": payment.payment_method.installments
             },
             "payment_source_id": paymentSourceId,
-            "signature":self._generate_signature(payment.amount_in_cents, "COP", payment.reference),
+            "signature": self._generate_signature(payment.amount_in_cents, "COP", payment.reference),
             "redirect_url": "https://mitienda.com.co/pago/resultado",
             "reference": payment.reference
         }
-        # print("Payload to send to WOMPI:", json.dumps(payload, indent=2))
         return await self._send(payload)
     
 class NequiMethod(PaymentMethod):
     
-    async def tokenizer(self, paymentInfo: Dict[str, Any])->str:
+    async def tokenizer(self, paymentInfo: dict[str, Any]) -> str:
         url = f"{self._link}tokens/nequi"
         urlGet = f"{self._link}tokens/nequi/"
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 resp = await client.post(url=url, json=paymentInfo, headers={
-                    "Authorization":f"Bearer {self._pubKey}"
+                    "Authorization": f"Bearer {self._pubKey}"
                 })
                 resp.raise_for_status()
                 data = resp.json()
-                id:str = data["data"]["id"]
+                id: str = data["data"]["id"]
                 resp = await client.get(url=f"{urlGet}{id}", headers={
-                    "Authorization":f"Bearer {self._pubKey}"
+                    "Authorization": f"Bearer {self._pubKey}"
                 })
                 data = resp.json()
                 if data["data"]["status"] != "APPROVED":
@@ -175,22 +174,22 @@ class NequiMethod(PaymentMethod):
             except Exception as e:
                 raise HTTPException(500, f"Error interno al obtener acceptance tokens: {str(e)}")
 
-    async def generatePayment(self, payment: PaymentType, userEmail: str)->PaymentTypeResponse:
+    async def generatePayment(self, payment: PaymentType, userEmail: str) -> PaymentTypeResponse:
         pm = payment.payment_method
         if not getattr(pm, "phone_number", None):
             raise HTTPException(400, ExceptionsEnum.NO_NEQUI_PHONE_NUMBER.value)
         token = await self.tokenizer({
             "phone_number": pm.phone_number
         })
-        sourcePayload:Dict[str, str | int] = {
-            "type":payment.payment_method.type,
-            "token":token,
-            "acceptance_token":payment.acceptance_token,
+        sourcePayload: dict[str, str | int] = {
+            "type": payment.payment_method.type,
+            "token": token,
+            "acceptance_token": payment.acceptance_token,
             "customer_email": userEmail
         }
         paymentSourceId: int = await self._getPaymentSourceId(sourcePayload)
-        payload: Dict[str, Any] = {
-            "acceptance_token":payment.acceptance_token,
+        payload: dict[str, Any] = {
+            "acceptance_token": payment.acceptance_token,
             "amount_in_cents": payment.amount_in_cents,
             "currency": "COP",
             "customer_email": userEmail,

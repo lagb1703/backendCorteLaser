@@ -1,13 +1,11 @@
 from fastapi import HTTPException
-from src.FileModule.geometriesAnalizer import GeometriesAnaliser
+from src.FileModule.geometriesAnalyzer import GeometriesAnalyzer
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
 from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection # type: ignore
-from typing import Dict, List
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from typing import Tuple
 from shapely.affinity import scale
 from ezdxf.filemanagement import read # type: ignore
 from ezdxf.lldxf.const import DXFStructureError # type: ignore
@@ -15,16 +13,16 @@ from ezdxf_shapely import polygonize # type: ignore
 from ezdxf import path
 from shapely.geometry import LineString
 
-class ShapelyAnalizer(GeometriesAnaliser):
+class ShapelyAnalyzer(GeometriesAnalyzer):
     
-    def __init__(self, geometries: List[Polygon]):
+    def __init__(self, geometries: list[Polygon]):
         self.__geometries = gpd.GeoSeries(geometries)
         
     def checkGeometries(self)->bool:
         validGeometry:bool = bool(self.__geometries.notna().all() and self.__geometries.is_valid.all())
         gdf = gpd.GeoDataFrame({'geometry': self.__geometries})
         candidates = gpd.sjoin(gdf, gdf, how='inner', predicate='intersects')
-        overlaps: List[Tuple[int, int]] = []
+        overlaps: list[tuple[int, int]] = []
         for _, row in candidates.iterrows():
             i = int(row.name) # type: ignore
             j = int(row['index_right']) 
@@ -36,7 +34,7 @@ class ShapelyAnalizer(GeometriesAnaliser):
                 overlaps.append((i, j))
         return validGeometry and len(overlaps) == 0
     
-    def getMinimunRectangle(self)->Tuple[float, float, float, float]:
+    def getMinimumRectangle(self)->tuple[float, float, float, float]:
         union = self.__geometries.unary_union # type: ignore
         rect = union.minimum_rotated_rectangle
         minx, miny, maxx, maxy = rect.bounds
@@ -65,31 +63,31 @@ class ShapelyAnalizer(GeometriesAnaliser):
     
 class DxfAdapter(GeometriesAdapter[Polygon]):
     
-    unitsToMeters:Dict[int, float] = {
-            0: 0,  # Unidades sin definir
-            1: 0.0254,  # Pulgadas a metros
-            2: 0.3048,  # Pies a metros
-            3: 1609.34,  # Millas a metros
-            4: 0.001,  # Milímetros a metros
-            5: 0.01,  # Centímetros a metros
-            6: 1.0,  # Metros
-            7: 1000.0,  # Kilómetros a metros
-            8: 2.54e-08,  # Micro-pulgadas a metros
-            9: 2.54e-05,  # Mils a metros
-            10: 0.9144,  # Yardas a metros
-            11: 1e-10,  # Ángstroms a metros
-            12: 1e-09,  # Nanómetros a metros
-            13: 1e-06,  # Micrones a metros
-            14: 0.1,  # Decímetros a metros
-            15: 10.0,  # Decámetros a metros
-            16: 100.0,  # Hectómetros a metros
-            17: 1e+09,  # Gigámetros a metros
-            18: 1.495978707e+11,  # Unidades astronómicas a metros
-            19: 9.461e+15,  # Años luz a metros
-            20: 3.086e+16,  # Parsecs a metros
+    unitsToMeters: dict[int, float] = {
+            0: 0,
+            1: 0.0254,
+            2: 0.3048,
+            3: 1609.34,
+            4: 0.001,
+            5: 0.01,
+            6: 1.0,
+            7: 1000.0,
+            8: 2.54e-08,
+            9: 2.54e-05,
+            10: 0.9144,
+            11: 1e-10,
+            12: 1e-09,
+            13: 1e-06,
+            14: 0.1,
+            15: 10.0,
+            16: 100.0,
+            17: 1e+09,
+            18: 1.495978707e+11,
+            19: 9.461e+15,
+            20: 3.086e+16,
     }
     
-    def makeGeometries(self, data: bytes)-> List[Polygon]:
+    def makeGeometries(self, data: bytes)-> list[Polygon]:
         buf = None
         try:
             buf = TextIOWrapper(BytesIO(data), encoding='latin-1')
@@ -112,7 +110,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                     except Exception:
                         pass
         msp = doc.modelspace()
-        geoms:List[LineString] = []
+        geoms: list[LineString] = []
         for entity in msp:
             try:
                 p_path = path.make_path(entity)
@@ -132,7 +130,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
     
-    def makeGeometries(self, data: bytes)-> List[Polygon]:
+    def makeGeometries(self, data: bytes)-> list[Polygon]:
         try:
             geom = wkb.loads(data)
             if isinstance(geom, Polygon):

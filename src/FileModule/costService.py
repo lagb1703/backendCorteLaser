@@ -1,57 +1,40 @@
 from src.FileModule.astEval import AstEval
-from src.utils.PostgressClient import PostgressClient
+from src.utils.PostgresClient import PostgresClient, get_postgres_client
 from src.FileModule.enums import CostSql
-from typing import Dict
 import ast
+from src.FileModule.interfaces import PriceElements
 
 class CostService:
-    
-    __instance: 'CostService | None' = None
-    
+
     tree: ast.Expression | None = None
-    
-    @staticmethod
-    def getInstance()->'CostService':
-        if CostService.__instance is None:
-            CostService.__instance = CostService()
-        return CostService.__instance
-    
-    def __init__(self) -> None:
-        self.__postgressClient = PostgressClient.getInstance()
-    
+
+    def __init__(self, postgres_client: PostgresClient) -> None:
+        self.__postgresClient = postgres_client
+
     async def __setEstimate(self, exp: str) -> None:
-        data: Dict[str, str] = {
-            'estimatic': exp
-        }
-        await self.__postgressClient.save(CostSql.newEstimate.value, data)
-    
+        data: dict[str, str] = {"estimatic": exp}
+        await self.__postgresClient.save(CostSql.newEstimate.value, data)
+
     async def getPriceEstimate(self) -> str:
-        return (await self.__postgressClient.query(CostSql.getPrice.value, []))[0]['estimatic'].replace('\"', '')
-    
-    async def getPrice(self, materialPrice: float, thicknessPrice: float, mtPrice: int | None, area: float, weight: float, perimeter: float, speed: float, amount: int) -> float:
+        return (await self.__postgresClient.query(CostSql.getPrice.value, []))[0][
+            "estimatic"
+        ].replace('"', "")
+
+    async def getPrice(self, priceElements: PriceElements) -> float:
         if self.tree is None:
             exp = await self.getPriceEstimate()
-            self.tree = ast.parse(exp, mode='eval')
+            self.tree = ast.parse(exp, mode="eval")
         try:
-            if not mtPrice:
-                mtPrice = 0
-            names: Dict[str, float | int] = {
-                "materialPrice": materialPrice,
-                "thicknessPrice": thicknessPrice,
-                "mtPrice": mtPrice,
-                "area": area,
-                "weight": weight,
-                "perimeter": perimeter,
-                "amount": amount,
-                "speed": speed
-            }
+            names: dict[str, float | int] = priceElements.model_dump()
             evaluator = AstEval(names)
             result = evaluator.visit(self.tree.body)
             return result
         except Exception:
             raise
-    
+
     async def setPriceCalculator(self, exp: str) -> None:
-        self.tree = ast.parse(exp, mode='eval')
+        self.tree = ast.parse(exp, mode="eval")
         await self.__setEstimate(exp)
-    
+
+def get_cost_service() -> CostService:
+    return CostService(postgres_client=get_postgres_client())

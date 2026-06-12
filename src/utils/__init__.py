@@ -1,15 +1,15 @@
 from os import environ
 from dotenv import load_dotenv
 from .enums import ExceptionsEnum
-class Enviroment:
+class Environment:
     
-    __instance: 'Enviroment | None' = None
+    __instance: 'Environment | None' = None
     
     @staticmethod
-    def getInstance()->'Enviroment':
-        if Enviroment.__instance is None:
-            Enviroment.__instance = Enviroment()
-        return Enviroment.__instance
+    def getInstance()->'Environment':
+        if Environment.__instance is None:
+            Environment.__instance = Environment()
+        return Environment.__instance
     
     def __init__(self):
         load_dotenv()
@@ -17,5 +17,5 @@ class Enviroment:
     def get(self, name: str)->str:
         variable: str | None = environ.get(name)
         if variable is None:
-            raise Exception(ExceptionsEnum.NOT_ENVIROMENT_VARIABLE_AVABLE.value.replace(":variable", name))
+            raise Exception(ExceptionsEnum.NOT_ENVIRONMENT_VARIABLE_AVAILABLE.value.replace(":variable", name))
         return variable

@@ -2,6 +2,8 @@ from enum import Enum
 
 class ExceptionsEnum(Enum):
     DUPLICATED_USER = "El correo ya ha sido registrado anteriormente"
+    NO_ROLL = "El usuario no tiene permisos para realizar esta accion"
+    EXPIRED_TOKEN = "El token ha expirado"
 
 class UserSql(Enum):
     login="""
@@ -37,7 +39,7 @@ class UserSql(Enum):
         LEFT JOIN "USER"."TB_USER_IDENTIFICATION_TYPES" utuit 
             ON utuit."identificationTypeId" = utuu."identificationTypeId"
     """
-    getUSerById= """
+    getUserById= """
         SELECT 
             utuu.names as "names",
             utuu."lastNames" as "lastNames",
@@ -54,7 +56,7 @@ class UserSql(Enum):
             ON utuit."identificationTypeId" = utuu."identificationTypeId"
         WHERE utuu."userId" = $1
     """
-    getUSerByEmail= """
+    getUserByEmail= """
         SELECT 
             utuu."userId" as "id",
             utuu.names as "names",

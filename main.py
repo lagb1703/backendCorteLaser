@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from src import routers
-from src.utils import Enviroment
-from src.utils.enums import EnviromentsEnum
+from src.utils import Environment
+from src.utils.enums import EnvironmentsEnum
 from fastapi.openapi.utils import get_openapi
 
 app = FastAPI(
@@ -38,13 +38,13 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-e = Enviroment.getInstance()
+e = Environment.getInstance()
 
 origins = [
     "http://localhost",
     "http://localhost:3000", 
     "http://localhost:3001",  
-    e.get(EnviromentsEnum.ORIGIN.value)
+    e.get(EnvironmentsEnum.ORIGIN.value)
 ]
 
 app.add_middleware(
@@ -57,7 +57,7 @@ app.add_middleware(
 
 app.add_middleware(
     SessionMiddleware, 
-    secret_key=e.get(EnviromentsEnum.JWT_KEY.value),
+    secret_key=e.get(EnvironmentsEnum.JWT_KEY.value),
     same_site="lax",
     https_only=False
 )
