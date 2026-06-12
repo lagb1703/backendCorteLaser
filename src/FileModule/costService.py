@@ -24,9 +24,11 @@ class CostService:
     async def getPrice(self, priceElemnets: PriceElements) -> float:
         if self.tree is None:
             exp = await self.getPriceEstimate()
+            print(exp)
             self.tree = ast.parse(exp, mode="eval")
         try:
             names: dict[str, float | int] = priceElemnets.model_dump()
+            print(names)
             evaluator = AstEval(names)
             result = evaluator.visit(self.tree.body)
             return result

@@ -193,6 +193,7 @@ class FileService:
             amount=amount,
             blends=0
         )
+        print(p.model_dump())
         price = await self.__costService.getPrice(
             p
         )

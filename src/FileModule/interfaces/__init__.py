@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class PriceElements(BaseModel):
-    matrialPrice: float
+    materialPrice: float
     thicknessPrice: float
     area: float
     weight: float
