@@ -13,7 +13,6 @@ from ezdxf.lldxf.const import DXFStructureError  # type: ignore
 from shapely.ops import polygonize
 from ezdxf import path
 from shapely.geometry import LineString
-import math
 
 
 class ShapelyAnalyzer(GeometriesAnalyzer):
@@ -117,23 +116,18 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
         msp = doc.modelspace()
         geoms: list[LineString] = []
+        polygons: list[Polygon] = []
         layers = set(entity.dxf.layer for entity in doc.modelspace())
         print(layers)
-        """for entity in msp.query("LINE[layer=='BEND']"):
-            start = entity.dxf.start  # (x, y, z)
-            end = entity.dxf.end
-            print(f"BEND line: {start} -> {end}")
-
-        # Read bend extents
-        for entity in msp.query("LINE[layer=='BEND_EXTENT']"):
-            start = entity.dxf.start
-            end = entity.dxf.end
-            print(f"BEND_EXTENT line: {start} -> {end}")"""
         for entity in msp.query("*[layer!='BEND']").query("*[layer!='BEND_EXTENT']"):
             try:
                 p_path = path.make_path(entity)
                 vertices = list(p_path.flattening(distance=0.01))
-                if len(vertices) > 1:
+                if len(vertices) < 2:
+                    continue
+                if p_path.is_closed:
+                    polygons.append(Polygon(vertices))
+                else:
                     geoms.append(LineString(vertices))
             except Exception:
                 continue
@@ -153,21 +147,13 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                     ":description", "unidad desconocida"
                 ),
             )
-        print(f"{len(geoms)=}")
-        polygons: list[Polygon] = list(polygonize(geoms))
-        for geom in geoms:
-            coords = list(geom.coords)
-            print("nueva figura")
-            for i in coords:
-                print(i)
-        newPolygons: list[Polygon] = []
-        print(f"{len(polygons)=}")
-        print(f"{polygons}")
+        polygons.extend(polygonize(geoms))
+        scaledPolygons: list[Polygon] = []
         for poly in polygons:
             p = scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0, 0, 0))
-            newPolygons.append(p)
-        print(f"{len(newPolygons)=}")
-        return newPolygons
+            scaledPolygons.append(p)
+        print(f"{len(scaledPolygons)=}")
+        return scaledPolygons
 
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
