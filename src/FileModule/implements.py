@@ -3,94 +3,100 @@ from src.FileModule.geometriesAnalyzer import GeometriesAnalyzer
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
-from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection # type: ignore
+from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection  # type: ignore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.affinity import scale
-from ezdxf.filemanagement import read # type: ignore
-from ezdxf.lldxf.const import DXFStructureError # type: ignore
-from ezdxf_shapely import polygonize # type: ignore
+from ezdxf.filemanagement import read  # type: ignore
+from ezdxf.lldxf.const import DXFStructureError  # type: ignore
+#from ezdxf_shapely import polygonize  # type: ignore
+from shapely.ops import polygonize
 from ezdxf import path
 from shapely.geometry import LineString
+import math
+
 
 class ShapelyAnalyzer(GeometriesAnalyzer):
-    
+
     def __init__(self, geometries: list[Polygon]):
         self.__geometries = gpd.GeoSeries(geometries)
-        
-    def checkGeometries(self)->bool:
-        validGeometry:bool = bool(self.__geometries.notna().all() and self.__geometries.is_valid.all())
-        gdf = gpd.GeoDataFrame({'geometry': self.__geometries})
-        candidates = gpd.sjoin(gdf, gdf, how='inner', predicate='intersects')
+
+    def checkGeometries(self) -> bool:
+        validGeometry: bool = bool(
+            self.__geometries.notna().all() and self.__geometries.is_valid.all()
+        )
+        gdf = gpd.GeoDataFrame({"geometry": self.__geometries})
+        candidates = gpd.sjoin(gdf, gdf, how="inner", predicate="intersects")
         overlaps: list[tuple[int, int]] = []
         for _, row in candidates.iterrows():
-            i = int(row.name) # type: ignore
-            j = int(row['index_right']) 
+            i = int(row.name)  # type: ignore
+            j = int(row["index_right"])
             if i >= j:
                 continue
-            b1 = gdf.loc[i, 'geometry'].boundary # type: ignore
-            b2 = gdf.loc[j, 'geometry'].boundary # type: ignore
-            if touches(b1, b2): # type: ignore
+            b1 = gdf.loc[i, "geometry"].boundary  # type: ignore
+            b2 = gdf.loc[j, "geometry"].boundary  # type: ignore
+            if touches(b1, b2):  # type: ignore
                 overlaps.append((i, j))
         return validGeometry and len(overlaps) == 0
-    
-    def getMinimumRectangle(self)->tuple[float, float, float, float]:
-        union = self.__geometries.unary_union # type: ignore
+
+    def getMinimumRectangle(self) -> tuple[float, float, float, float]:
+        union = self.__geometries.unary_union  # type: ignore
         rect = union.minimum_rotated_rectangle
         minx, miny, maxx, maxy = rect.bounds
         return (float(minx), float(miny), float(maxx), float(maxy))
-    
-    def getPerimeter(self)->float:
-        union = self.__geometries.unary_union # type: ignore
+
+    def getPerimeter(self) -> float:
+        union = self.__geometries.unary_union  # type: ignore
         return union.length
-    
-    def createImage(self)->bytes:
-        fig, ax = plt.subplots(figsize=(6,6)) # type: ignore
-        self.__geometries.plot(ax=ax, facecolor='none', edgecolor='black') # type: ignore
-        ax.set_aspect('equal')
-        ax.axis('off')
+
+    def createImage(self) -> bytes:
+        fig, ax = plt.subplots(figsize=(6, 6))  # type: ignore
+        self.__geometries.plot(ax=ax, facecolor="none", edgecolor="black")  # type: ignore
+        ax.set_aspect("equal")
+        ax.axis("off")
         buf = BytesIO()
-        fig.savefig(buf, format='png', bbox_inches='tight', pad_inches=0) # type: ignore
+        fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)  # type: ignore
         plt.close(fig)
         image_bytes = buf.getvalue()
         buf.close()
         return image_bytes
-    
-    def save(self)->bytes:
+
+    def save(self) -> bytes:
         geometries_list = self.__geometries.tolist()
         geom_collection = GeometryCollection(geometries_list)
-        return wkb.dumps(geom_collection) # type: ignore
-    
+        return wkb.dumps(geom_collection)  # type: ignore
+
+
 class DxfAdapter(GeometriesAdapter[Polygon]):
-    
+
     unitsToMeters: dict[int, float] = {
-            0: 0,
-            1: 0.0254,
-            2: 0.3048,
-            3: 1609.34,
-            4: 0.001,
-            5: 0.01,
-            6: 1.0,
-            7: 1000.0,
-            8: 2.54e-08,
-            9: 2.54e-05,
-            10: 0.9144,
-            11: 1e-10,
-            12: 1e-09,
-            13: 1e-06,
-            14: 0.1,
-            15: 10.0,
-            16: 100.0,
-            17: 1e+09,
-            18: 1.495978707e+11,
-            19: 9.461e+15,
-            20: 3.086e+16,
+        0: 0,
+        1: 0.0254,
+        2: 0.3048,
+        3: 1609.34,
+        4: 0.001,
+        5: 0.01,
+        6: 1.0,
+        7: 1000.0,
+        8: 2.54e-08,
+        9: 2.54e-05,
+        10: 0.9144,
+        11: 1e-10,
+        12: 1e-09,
+        13: 1e-06,
+        14: 0.1,
+        15: 10.0,
+        16: 100.0,
+        17: 1e09,
+        18: 1.495978707e11,
+        19: 9.461e15,
+        20: 3.086e16,
     }
-    
-    def makeGeometries(self, data: bytes)-> list[Polygon]:
+
+    def makeGeometries(self, data: bytes) -> list[Polygon]:
         buf = None
         try:
-            buf = TextIOWrapper(BytesIO(data), encoding='latin-1')
+            buf = TextIOWrapper(BytesIO(data), encoding="latin-1")
             doc = read(buf)
         except DXFStructureError:
             try:
@@ -111,7 +117,19 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
         msp = doc.modelspace()
         geoms: list[LineString] = []
-        for entity in msp:
+        layers = set(entity.dxf.layer for entity in doc.modelspace())
+        print(layers)
+        """for entity in msp.query("LINE[layer=='BEND']"):
+            start = entity.dxf.start  # (x, y, z)
+            end = entity.dxf.end
+            print(f"BEND line: {start} -> {end}")
+
+        # Read bend extents
+        for entity in msp.query("LINE[layer=='BEND_EXTENT']"):
+            start = entity.dxf.start
+            end = entity.dxf.end
+            print(f"BEND_EXTENT line: {start} -> {end}")"""
+        for entity in msp.query("*[layer!='BEND']").query("*[layer!='BEND_EXTENT']"):
             try:
                 p_path = path.make_path(entity)
                 vertices = list(p_path.flattening(distance=0.01))
@@ -121,16 +139,40 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                 continue
         units = doc.units
         if units == 0:
-            raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "falta de unidades de medida"))
+            raise HTTPException(
+                404,
+                ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(
+                    ":description", "falta de unidades de medida"
+                ),
+            )
         convertFactor = DxfAdapter.unitsToMeters.get(units)
         if convertFactor is None:
-            raise HTTPException(404, ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(":description", "unidad desconocida"))
-        polygons = polygonize(geoms, coerce_ends=True, coercion_distance=0.1)
-        return [scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0,0)) for poly in polygons]
+            raise HTTPException(
+                404,
+                ExceptionsEnum.BAD_FILE.name.replace(":file", "").replace(
+                    ":description", "unidad desconocida"
+                ),
+            )
+        print(f"{len(geoms)=}")
+        polygons: list[Polygon] = list(polygonize(geoms))
+        for geom in geoms:
+            coords = list(geom.coords)
+            print("nueva figura")
+            for i in coords:
+                print(i)
+        newPolygons: list[Polygon] = []
+        print(f"{len(polygons)=}")
+        print(f"{polygons}")
+        for poly in polygons:
+            p = scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0, 0, 0))
+            newPolygons.append(p)
+        print(f"{len(newPolygons)=}")
+        return newPolygons
+
 
 class WKBAdapter(GeometriesAdapter[Polygon]):
-    
-    def makeGeometries(self, data: bytes)-> list[Polygon]:
+
+    def makeGeometries(self, data: bytes) -> list[Polygon]:
         try:
             geom = wkb.loads(data)
             if isinstance(geom, Polygon):
@@ -138,9 +180,11 @@ class WKBAdapter(GeometriesAdapter[Polygon]):
             elif isinstance(geom, MultiPolygon):
                 return list(geom.geoms)
             elif isinstance(geom, GeometryCollection):
-                polys = [g for g in geom.geoms if isinstance(g, Polygon)] # type: ignore
+                polys = [g for g in geom.geoms if isinstance(g, Polygon)]  # type: ignore
                 return polys
             else:
-                raise ValueError("WKB geometry no es un Polígono/Multipolígono compatible")
+                raise ValueError(
+                    "WKB geometry no es un Polígono/Multipolígono compatible"
+                )
         except Exception as e2:
             raise ValueError(f"No se pudo decodificar WKB: {e2}")
