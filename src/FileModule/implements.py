@@ -13,6 +13,8 @@ from ezdxf.lldxf.const import DXFStructureError  # type: ignore
 from shapely.ops import polygonize
 from ezdxf import path
 from shapely.geometry import LineString
+import trimesh  # type: ignore
+import numpy as np  # type: ignore
 
 
 class ShapelyAnalyzer(GeometriesAnalyzer):
@@ -59,6 +61,22 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
         image_bytes = buf.getvalue()
         buf.close()
         return image_bytes
+
+    def createOBJ(self) -> bytes:
+        meshes = []
+        for poly in self.__geometries:
+            if poly.has_z:
+                coords = np.array(list(poly.exterior.coords)[:-1])
+                n = len(coords)
+                faces = [[0, i, i + 1] for i in range(1, n - 1)]
+                mesh = trimesh.Trimesh(vertices=coords, faces=faces)
+            else:
+                mesh = trimesh.creation.extrude_polygon(poly, height=1.0)
+            meshes.append(mesh)
+        scene = trimesh.Scene(meshes)
+        buf = BytesIO()
+        scene.export(buf, file_type="obj")
+        return buf.getvalue()
 
     def save(self) -> bytes:
         geometries_list = self.__geometries.tolist()
