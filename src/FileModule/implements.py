@@ -1,15 +1,17 @@
 from fastapi import HTTPException
+import numpy as np
+from math import inf
+import mapbox_earcut as earcut
 from src.FileModule.geometriesAnalyzer import GeometriesAnalyzer
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
-from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection  # type: ignore
+from shapely import Point, Polygon, touches, wkb, MultiPolygon, GeometryCollection  # type: ignore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.affinity import scale
 from ezdxf.filemanagement import read  # type: ignore
 from ezdxf.lldxf.const import DXFStructureError  # type: ignore
-#from ezdxf_shapely import polygonize  # type: ignore
 from shapely.ops import polygonize
 from ezdxf import path
 from shapely.geometry import LineString
@@ -62,17 +64,46 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
         buf.close()
         return image_bytes
 
-    def createOBJ(self) -> bytes:
+    def createOBJ(self, thickness: float = 1.0) -> bytes:
         meshes = []
-        for poly in self.__geometries:
-            if poly.has_z:
-                coords = np.array(list(poly.exterior.coords)[:-1])
-                n = len(coords)
-                faces = [[0, i, i + 1] for i in range(1, n - 1)]
-                mesh = trimesh.Trimesh(vertices=coords, faces=faces)
-            else:
-                mesh = trimesh.creation.extrude_polygon(poly, height=1.0)
-            meshes.append(mesh)
+        poly_list = self.__geometries.tolist()
+        maxArea: float = -inf
+        index: int = 0
+        for i, poly in enumerate(poly_list):
+            minX, minY, maxX, maxY = poly.bounds
+            area = (maxX - minX) * (maxY - minY)
+            if maxArea < area:
+                maxArea = area
+                index = i
+        nut: Polygon = poly_list[index]
+        allIn: bool = True
+        holes: list[int] = []
+        vertices = []
+        vertices.extend(list(nut.exterior.coords)[:-1])
+        # print(f"{index=}")
+        for i, poly in enumerate(self.__geometries):
+            if i == index:
+                continue
+            allIn &= nut.contains(poly)
+            ext_coords = list(poly.exterior.coords)[:-1]
+            # print(f"{i=} {len(ext_coords)=} {len(vertices)=}")
+            holes.append(len(vertices))
+            vertices.extend(ext_coords)
+        holes.append(len(vertices))
+        print(f"{holes=}")
+        verticesFormat = np.zeros((len(vertices), 2)).astype(np.float64)
+        for i in range(len(vertices)):
+            vertex = np.asarray(vertices[i], dtype=np.float64)
+            verticesFormat[i][0] = vertex[0]
+            verticesFormat[i][1] = vertex[1]
+        # print(f"{verticesFormat=}")
+        faces = earcut.triangulate_float64(
+            verticesFormat, np.asarray(holes, dtype=np.uint32)
+        )
+        # print(faces.shape)
+        faces = faces.reshape(int(faces.shape[0] / 3), 3)
+        # print(f"{faces=}")
+        meshes.append(trimesh.Trimesh(vertices=vertices, faces=faces))
         scene = trimesh.Scene(meshes)
         buf = BytesIO()
         scene.export(buf, file_type="obj")

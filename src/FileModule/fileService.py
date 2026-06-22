@@ -152,6 +152,20 @@ class FileService:
             },
         )
 
+    async def getOBJ(self, id: str | int, user: UserToken) -> StreamingResponse:
+        fileInfo = await self.getFileInfo(id, user)
+        fileWBT: bytes = self.__storage.download(
+            f"{fileInfo.md5}.wkb", FolderName.WKB.value
+        )
+        geo = self.__creator.createGeometry("wkb", fileWBT)
+        image = geo.createOBJ(thickness=1.0)
+        return StreamingResponse(
+            content=BytesIO(image),
+            media_type="model/obj",
+            headers={
+                "Content-Disposition": f"attachment; filename={fileInfo.name}.obj"
+            },
+        )
     async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
             rows = await self.__postgres.query(FileSql.getAllUserFiles.value, [user.id])
@@ -195,7 +209,7 @@ class FileService:
             speed=thickness.speed,
             amount=amount,
             blends=0,
-            mtPrice=thickness.mtPrice
+            mtPrice=thickness.mtPrice,
         )
         price = await self.__costService.getPrice(p)
         price = ceil(price * 100) / 100

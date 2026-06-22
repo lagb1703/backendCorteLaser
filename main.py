@@ -41,7 +41,7 @@ app.openapi = custom_openapi
 e = Environment.getInstance()
 
 origins = [
-    "http://localhost",
+    "http://localhost:5173",
     "http://localhost:3000", 
     "http://localhost:3001",  
     e.get(EnvironmentsEnum.ORIGIN.value)
