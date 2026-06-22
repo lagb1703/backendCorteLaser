@@ -50,6 +50,13 @@ async def getImage(
 ):
     return await file_service.getImage(id, u)
 
+@router.get("/OBJ")
+async def getOBJ(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getImage(id, u)
 @router.delete("")
 async def deleteFile(
     id: str,
