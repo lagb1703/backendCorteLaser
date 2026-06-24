@@ -10,7 +10,7 @@ from io import StringIO, BytesIO, TextIOWrapper
 from shapely import Point, Polygon, touches, wkb, MultiPolygon, GeometryCollection  # type: ignore
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from shapely.affinity import scale
+from shapely.affinity import scale, translate
 from ezdxf.filemanagement import read  # type: ignore
 from ezdxf.lldxf.const import DXFStructureError  # type: ignore
 from shapely.ops import polygonize
@@ -65,81 +65,45 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
         buf.close()
         return image_bytes
 
-    def createOBJ(self, thickness: float = 1.0) -> bytes:
+    def createOBJ(self, thickness: float = 0.000001) -> bytes:
         meshes = []
         poly_list: list[Polygon] = self.__geometries.tolist()
-        maxArea: float = -inf
-        index: int = 0
-        for i, poly in enumerate(poly_list):
-            minX, minY, maxX, maxY = poly.bounds
-            area = abs(maxX - minX) * abs(maxY - minY)
-            if maxArea < area:
-                maxArea = area
-                index = i
-        nut: Polygon = poly_list[index]
-        nminX, nminY, nmaxX, nmaxY = nut.bounds
-        allIn: bool = True
-        for i, poly in enumerate(self.__geometries):
-            if i == index:
+        all_bounds = self.__geometries.total_bounds
+        cx = (all_bounds[0] + all_bounds[2]) / 2
+        cy = (all_bounds[1] + all_bounds[3]) / 2
+        poly_list = [translate(p, -cx, -cy) for p in poly_list]
+        gdf = gpd.GeoDataFrame(geometry=poly_list)
+        gdf["width"] = gdf.geometry.bounds["maxx"] - gdf.geometry.bounds["minx"]
+        gdf["high"] = gdf.geometry.bounds["maxy"] - gdf.geometry.bounds["miny"]
+        gdf = gdf.sort_values(by=["width", "high"], ascending=[False, False])
+        joined = gpd.sjoin(gdf, gdf, how="inner", predicate="intersects")
+        children_map: dict[int, list[int]] = {}
+        for left_idx, group in joined.groupby(joined.index):
+            children_map[int(left_idx)] = [int(r) for r in group["index_right"]]
+        processed: set[int] = set()
+        for idx in gdf.index:
+            if idx in processed:
                 continue
-            minX, minY, maxX, maxY = poly.bounds
-            allIn &= nminX < minX and nminY < minY and nmaxX > maxX and nmaxY > maxY
-        holes: list[int] = []
-        vertices: list[tuple[float, ...]] = []
-        if allIn:
-            vertices.extend(list(nut.exterior.coords)[:-1])
-            for i, poly in enumerate(self.__geometries):
-                if i == index:
-                    continue
-                ext_coords = list(poly.exterior.coords)[:-1]
+            polygon: Polygon = poly_list[idx]
+            child_indices = [
+                c for c in children_map.get(idx, []) if c != idx and c not in processed
+            ]
+            processed.add(idx)
+            processed.update(child_indices)
+            vertices: list[tuple[float, ...]] = list(polygon.exterior.coords)[:-1]
+            holes = []
+            for ci in child_indices:
                 holes.append(len(vertices))
-                vertices.extend(ext_coords)
+                vertices.extend(list(gdf.loc[ci, "geometry"].exterior.coords)[:-1])
             holes.append(len(vertices))
-            verticesFormat = np.zeros((len(vertices), 2)).astype(np.float64)
-            for i in range(len(vertices)):
-                vertex = np.asarray(vertices[i], dtype=np.float64)
-                verticesFormat[i][0] = vertex[0]
-                verticesFormat[i][1] = vertex[1]
+            verticesFormat = np.array(vertices, dtype=np.float64)[:, :2]
             faces = earcut.triangulate_float64(
                 verticesFormat, np.asarray(holes, dtype=np.uint32)
             )
             faces = faces.reshape(int(faces.shape[0] / 3), 3)
-            meshes.append(trimesh.Trimesh(vertices=vertices, faces=faces))
-        else:
-            gdf = gpd.GeoDataFrame(geometry=poly_list)
-            gdf["width"] = gdf.geometry.bounds["maxx"] - gdf.geometry.bounds["minx"]
-            gdf["high"] = gdf.geometry.bounds["maxy"] - gdf.geometry.bounds["miny"]
-            gdf = gdf.sort_values(by=["width", "high"], ascending=[False, False])
-            processed: set[int] = set()
-            for idx in gdf.index:
-                if idx in processed:
-                    continue
-                polygon: Polygon = poly_list[idx]
-                children = gdf.sjoin(
-                    gpd.GeoDataFrame(geometry=[polygon]),
-                    how="inner",
-                )
-                print(f"{children=}")
-                child_indices = [
-                    int(c) for c in children.index if c != idx and c not in processed
-                ]
-                print(f"{child_indices=}")
-                processed.add(idx)
-                processed.update(child_indices)
-                vertices: list[tuple[float, ...]] = list(polygon.exterior.coords)[:-1]
-                holes = []
-                for ci in child_indices:
-                    holes.append(len(vertices))
-                    vertices.extend(list(gdf.loc[ci, "geometry"].exterior.coords)[:-1])
-                holes.append(len(vertices))
-                verticesFormat = np.zeros((len(vertices), 2), dtype=np.float64)
-                for i, v in enumerate(vertices):
-                    verticesFormat[i] = v[:2]
-                faces = earcut.triangulate_float64(
-                    verticesFormat, np.asarray(holes, dtype=np.uint32)
-                )
-                faces = faces.reshape(int(faces.shape[0] / 3), 3)
-                meshes.append(trimesh.Trimesh(vertices=vertices, faces=faces))
+            meshes.append(
+                trimesh.creation.extrude_triangulation(verticesFormat, faces, 0.01)
+            )
         scene = trimesh.Scene(meshes)
         buf = BytesIO()
         scene.export(buf, file_type="obj")
