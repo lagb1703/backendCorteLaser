@@ -68,10 +68,6 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
     def createOBJ(self, thickness: float = 0.000001) -> bytes:
         meshes = []
         poly_list: list[Polygon] = self.__geometries.tolist()
-        all_bounds = self.__geometries.total_bounds
-        cx = (all_bounds[0] + all_bounds[2]) / 2
-        cy = (all_bounds[1] + all_bounds[3]) / 2
-        poly_list = [translate(p, -cx, -cy) for p in poly_list]
         gdf = gpd.GeoDataFrame(geometry=poly_list)
         gdf["width"] = gdf.geometry.bounds["maxx"] - gdf.geometry.bounds["minx"]
         gdf["high"] = gdf.geometry.bounds["maxy"] - gdf.geometry.bounds["miny"]
@@ -168,6 +164,14 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
         polygons: list[Polygon] = []
         layers = set(entity.dxf.layer for entity in doc.modelspace())
         print(layers)
+        for line in msp.query("*[layer=='BEND']"):
+            p_path = path.make_path(line)
+            vertices = list(p_path.flattening(distance=0.01))
+            print(LineString(vertices))
+        for line in msp.query("*[layer=='BEND_EXTENT']"):
+            p_path = path.make_path(line)
+            vertices = list(p_path.flattening(distance=0.01))
+            print(LineString(vertices))
         for entity in msp.query("*[layer!='BEND']").query("*[layer!='BEND_EXTENT']"):
             try:
                 p_path = path.make_path(entity)
@@ -197,11 +201,15 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                 ),
             )
         polygons.extend(polygonize(geoms))
+        all_bounds = gpd.GeoSeries(polygons).total_bounds
+        cx = (all_bounds[0] + all_bounds[2]) / 2
+        cy = (all_bounds[1] + all_bounds[3]) / 2
         scaledPolygons: list[Polygon] = []
         for poly in polygons:
+            print(f"other {poly}")
+            p = translate(poly, -cx, -cy)
             p = scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0, 0, 0))
             scaledPolygons.append(p)
-        print(f"{len(scaledPolygons)=}")
         return scaledPolygons
 
 
