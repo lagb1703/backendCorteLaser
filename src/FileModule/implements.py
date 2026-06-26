@@ -1,13 +1,11 @@
 from fastapi import HTTPException
-import copy
 import numpy as np
-from math import inf
 import mapbox_earcut as earcut
 from src.FileModule.geometriesAnalyzer import GeometriesAnalyzer
 from src.FileModule.geometriesAdapter import GeometriesAdapter
 from src.FileModule.enums import ExceptionsEnum
 from io import StringIO, BytesIO, TextIOWrapper
-from shapely import Point, Polygon, touches, wkb, MultiPolygon, GeometryCollection  # type: ignore
+from shapely import Polygon, touches, wkb, MultiPolygon, GeometryCollection, Geometry  # type: ignore
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.affinity import scale, translate
@@ -22,7 +20,7 @@ import numpy as np  # type: ignore
 
 class ShapelyAnalyzer(GeometriesAnalyzer):
 
-    def __init__(self, geometries: list[Polygon]):
+    def __init__(self, geometries: list[Geometry]):
         self.__geometries = gpd.GeoSeries(geometries)
 
     def checkGeometries(self) -> bool:
@@ -55,7 +53,8 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
 
     def createImage(self) -> bytes:
         fig, ax = plt.subplots(figsize=(6, 6))  # type: ignore
-        self.__geometries.plot(ax=ax, facecolor="none", edgecolor="black")  # type: ignore
+        self.__geometries[self.__geometries.geom_type == "Polygon"].plot(ax=ax, facecolor="none", edgecolor="black")  # type: ignore
+        self.__geometries[self.__geometries.geom_type == "LineString"].plot(ax=ax, facecolor="none", edgecolor="red")  # type: ignore
         ax.set_aspect("equal")
         ax.axis("off")
         buf = BytesIO()
@@ -111,7 +110,7 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
         return wkb.dumps(geom_collection)  # type: ignore
 
 
-class DxfAdapter(GeometriesAdapter[Polygon]):
+class DxfAdapter(GeometriesAdapter[Geometry]):
 
     unitsToMeters: dict[int, float] = {
         0: 0,
@@ -137,7 +136,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
         20: 3.086e16,
     }
 
-    def makeGeometries(self, data: bytes) -> list[Polygon]:
+    def makeGeometries(self, data: bytes) -> list[Geometry]:
         buf = None
         try:
             buf = TextIOWrapper(BytesIO(data), encoding="latin-1")
@@ -161,17 +160,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                         pass
         msp = doc.modelspace()
         geoms: list[LineString] = []
-        polygons: list[Polygon] = []
-        layers = set(entity.dxf.layer for entity in doc.modelspace())
-        print(layers)
-        for line in msp.query("*[layer=='BEND']"):
-            p_path = path.make_path(line)
-            vertices = list(p_path.flattening(distance=0.01))
-            print(LineString(vertices))
-        for line in msp.query("*[layer=='BEND_EXTENT']"):
-            p_path = path.make_path(line)
-            vertices = list(p_path.flattening(distance=0.01))
-            print(LineString(vertices))
+        geometries: list[Geometry] = []
         for entity in msp.query("*[layer!='BEND']").query("*[layer!='BEND_EXTENT']"):
             try:
                 p_path = path.make_path(entity)
@@ -179,7 +168,7 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                 if len(vertices) < 2:
                     continue
                 if p_path.is_closed:
-                    polygons.append(Polygon(vertices))
+                    geometries.append(Polygon(vertices))
                 else:
                     geoms.append(LineString(vertices))
             except Exception:
@@ -200,34 +189,55 @@ class DxfAdapter(GeometriesAdapter[Polygon]):
                     ":description", "unidad desconocida"
                 ),
             )
-        polygons.extend(polygonize(geoms))
-        all_bounds = gpd.GeoSeries(polygons).total_bounds
+        geometries.extend(polygonize(geoms))
+        for line in msp.query("*[layer=='BEND']"):
+            p_path = path.make_path(line)
+            vertices = list(p_path.flattening(distance=0.1))
+            geometries.append(LineString(vertices))
+        for line in msp.query("*[layer=='BEND_EXTENT']"):
+            p_path = path.make_path(line)
+            vertices = list(p_path.flattening(distance=0.1))
+            geometries.append(LineString(vertices))
+        all_bounds = gpd.GeoSeries(geometries).total_bounds
         cx = (all_bounds[0] + all_bounds[2]) / 2
         cy = (all_bounds[1] + all_bounds[3]) / 2
-        scaledPolygons: list[Polygon] = []
-        for poly in polygons:
-            print(f"other {poly}")
+        scaledGeometries: list[Geometry] = []
+        for poly in geometries:
             p = translate(poly, -cx, -cy)
-            p = scale(poly, xfact=convertFactor, yfact=convertFactor, origin=(0, 0, 0))
-            scaledPolygons.append(p)
-        return scaledPolygons
+            p = scale(p, xfact=convertFactor, yfact=convertFactor, origin=(0, 0, 0))
+            scaledGeometries.append(p)
+        return scaledGeometries
 
 
-class WKBAdapter(GeometriesAdapter[Polygon]):
+class WKBAdapter(GeometriesAdapter[Geometry]):
 
-    def makeGeometries(self, data: bytes) -> list[Polygon]:
+    def makeGeometries(self, data: bytes) -> list[Geometry]:
         try:
-            geom = wkb.loads(data)
-            if isinstance(geom, Polygon):
-                return [geom]
-            elif isinstance(geom, MultiPolygon):
-                return list(geom.geoms)
-            elif isinstance(geom, GeometryCollection):
-                polys = [g for g in geom.geoms if isinstance(g, Polygon)]  # type: ignore
-                return polys
+            if isinstance(data, (bytes, bytearray)):
+                try:
+                    data_str = data.decode("ascii").strip()
+                    if all(c in "0123456789abcdefABCDEF" for c in data_str):
+                        geom = wkb.loads(data_str)
+                    else:
+                        geom = wkb.loads(data)
+                except (UnicodeDecodeError, Exception):
+                    geom = wkb.loads(data)
             else:
-                raise ValueError(
-                    "WKB geometry no es un Polígono/Multipolígono compatible"
-                )
-        except Exception as e2:
-            raise ValueError(f"No se pudo decodificar WKB: {e2}")
+                geom = wkb.loads(data)
+            return self.__flatten(geom)
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f"No se pudo decodificar WKB: {e}")
+
+    def __flatten(self, geom: Geometry) -> list[Geometry]:
+        if isinstance(geom, (Polygon, LineString)):
+            return [geom]
+        if isinstance(geom, (MultiPolygon,)):
+            return list(geom.geoms)
+        if isinstance(geom, GeometryCollection):
+            result: list[Geometry] = []
+            for g in geom.geoms:
+                result.extend(self.__flatten(g))
+            return result
+        return [geom]

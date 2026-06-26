@@ -100,7 +100,7 @@ class FileService:
                 bucket=FolderName.ORIGINAL.value,
                 userId=user.id,
             )
-            """id = await self.__saveFileInfo(fileInfo, user)
+            id = await self.__saveFileInfo(fileInfo, user)
             self.__storage.upload(
                 fileBytes,
                 f"{fileInfo.md5}.{file.filename.split('.')[1]}",
@@ -108,8 +108,8 @@ class FileService:
             )
             self.__storage.upload(
                 geo.save(), f"{fileInfo.md5}.wkb", FolderName.WKB.value
-            )"""
-            return 0
+            )
+            return id
         except ValueError as e:
             raise HTTPException(400, str(e))
         except UniqueViolationError as e:
