@@ -158,7 +158,7 @@ class FileService:
             f"{fileInfo.md5}.wkb", FolderName.WKB.value
         )
         geo = self.__creator.createGeometry("wkb", fileWBT)
-        image = geo.createOBJ(thickness=1.0)
+        image = geo.createOBJ()
         return StreamingResponse(
             content=BytesIO(image),
             media_type="model/obj",
@@ -166,6 +166,22 @@ class FileService:
                 "Content-Disposition": f"attachment; filename={fileInfo.name}.obj"
             },
         )
+
+    async def getGbl(self, id: str | int, user: UserToken) -> StreamingResponse:
+        fileInfo = await self.getFileInfo(id, user)
+        fileWBT: bytes = self.__storage.download(
+            f"{fileInfo.md5}.wkb", FolderName.WKB.value
+        )
+        geo = self.__creator.createGeometry("wkb", fileWBT)
+        image = geo.createGlb()
+        return StreamingResponse(
+            content=BytesIO(image),
+            media_type="model/glb",
+            headers={
+                "Content-Disposition": f"attachment; filename={fileInfo.name}.obj"
+            },
+        )
+
     async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
             rows = await self.__postgres.query(FileSql.getAllUserFiles.value, [user.id])

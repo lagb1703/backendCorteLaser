@@ -57,6 +57,16 @@ async def getOBJ(
     file_service: Annotated[FileService, Depends(get_file_service)]
 ):
     return await file_service.getOBJ(id, u)
+
+@router.get("/Gbl")
+async def getGbl(
+    id: str,
+    u: Annotated[UserToken, Depends(get_current_user)],
+    file_service: Annotated[FileService, Depends(get_file_service)]
+):
+    return await file_service.getGbl(id, u)
+
+
 @router.delete("")
 async def deleteFile(
     id: str,

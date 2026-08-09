@@ -20,7 +20,11 @@ class GeometriesAnalyzer(ABC):
         pass
 
     @abstractmethod
-    def createOBJ(self, thickness: float) -> bytes:
+    def createOBJ(self) -> bytes:
+        pass
+
+    @abstractmethod
+    def createGlb(self) -> bytes:
         pass
 
     @abstractmethod
