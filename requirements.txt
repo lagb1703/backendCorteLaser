@@ -40,6 +40,7 @@ kiwisolver==1.4.9
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 matplotlib==3.10.7
+mapbox_earcut==2.0.0
 mdurl==0.1.2
 numpy==2.3.3
 packaging==25.0

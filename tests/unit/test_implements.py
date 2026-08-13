@@ -48,7 +48,7 @@ class TestShapelyAnalyzer:
         assert perimeter == 8
 
     def test_create_image(self, analyzer):
-        image_bytes = analyzer.createImage()
+        image_bytes = analyzer.export("png")
         assert isinstance(image_bytes, bytes)
         assert len(image_bytes) > 0
 
@@ -56,7 +56,7 @@ class TestShapelyAnalyzer:
         outer = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         inner = Polygon([(2, 0), (8, 0), (8, 8), (2, 8)])
         analyzer = ShapelyAnalyzer([outer, inner])
-        result = analyzer.createOBJ()
+        result = analyzer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -64,7 +64,7 @@ class TestShapelyAnalyzer:
         outer = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         inner = Polygon([(2, 2), (8, 2), (8, 8), (2, 8)])
         analyzer = ShapelyAnalyzer([outer, inner])
-        result = analyzer.createOBJ()
+        result = analyzer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -72,7 +72,7 @@ class TestShapelyAnalyzer:
         p1 = Polygon([(0, 0), (5, 0), (5, 5), (0, 5)])
         p2 = Polygon([(10, 10), (15, 10), (15, 15), (10, 15)])
         analyzer = ShapelyAnalyzer([p1, p2])
-        result = analyzer.createOBJ()
+        result = analyzer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -80,7 +80,7 @@ class TestShapelyAnalyzer:
         outer = Polygon([(0, 0), (20, 0), (20, 20), (0, 20)])
         inner = Polygon([(5, 5), (15, 5), (15, 15), (5, 15)])
         analyzer = ShapelyAnalyzer([outer, inner])
-        result = analyzer.createOBJ()
+        result = analyzer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -88,7 +88,7 @@ class TestShapelyAnalyzer:
         outer = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         inner_touches = Polygon([(0, 2), (5, 2), (5, 8), (0, 8)])
         analyzer = ShapelyAnalyzer([outer, inner_touches])
-        result = analyzer.createOBJ()
+        result = analyzer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -102,7 +102,7 @@ class TestShapelyAnalyzer:
                 if listCoords:
                     l.append(Polygon(listCoords))
         analizer = ShapelyAnalyzer(l)
-        result = analizer.createOBJ()
+        result = analizer.export("obj")
         assert isinstance(result, bytes)
         assert len(result) > 0
 

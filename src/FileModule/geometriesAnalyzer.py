@@ -16,15 +16,7 @@ class GeometriesAnalyzer(ABC):
         pass
 
     @abstractmethod
-    def createImage(self) -> bytes:
-        pass
-
-    @abstractmethod
-    def createOBJ(self) -> bytes:
-        pass
-
-    @abstractmethod
-    def createGlb(self) -> bytes:
+    def export(self, format: str) -> bytes:
         pass
 
     @abstractmethod

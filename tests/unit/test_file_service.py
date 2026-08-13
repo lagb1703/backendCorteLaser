@@ -157,7 +157,7 @@ class TestFileService:
         }])
         mock_storage.download = MagicMock(return_value=b"wkb_data")
         mock_creator.createGeometry = MagicMock()
-        mock_creator.createGeometry.return_value.createImage = MagicMock(return_value=b"image_data")
+        mock_creator.createGeometry.return_value.export = MagicMock(return_value=b"image_data")
 
         result = await file_service.getImage("1", sample_user_token)
         assert result is not None

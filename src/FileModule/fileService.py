@@ -143,7 +143,7 @@ class FileService:
             f"{fileInfo.md5}.wkb", FolderName.WKB.value
         )
         geo = self.__creator.createGeometry("wkb", fileWBT)
-        image = geo.createImage()
+        image = geo.export("png")
         return StreamingResponse(
             content=BytesIO(image),
             media_type="image/png",
@@ -158,7 +158,7 @@ class FileService:
             f"{fileInfo.md5}.wkb", FolderName.WKB.value
         )
         geo = self.__creator.createGeometry("wkb", fileWBT)
-        image = geo.createOBJ()
+        image = geo.export("obj")
         return StreamingResponse(
             content=BytesIO(image),
             media_type="model/obj",
@@ -173,7 +173,7 @@ class FileService:
             f"{fileInfo.md5}.wkb", FolderName.WKB.value
         )
         geo = self.__creator.createGeometry("wkb", fileWBT)
-        image = geo.createGlb()
+        image = geo.export("glb")
         return StreamingResponse(
             content=BytesIO(image),
             media_type="model/glb",
