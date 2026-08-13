@@ -182,6 +182,21 @@ class FileService:
             },
         )
 
+    async def getGlbRigged(self, id: str | int, user: UserToken) -> StreamingResponse:
+        fileInfo = await self.getFileInfo(id, user)
+        fileWBT: bytes = self.__storage.download(
+            f"{fileInfo.md5}.wkb", FolderName.WKB.value
+        )
+        geo = self.__creator.createGeometry("wkb", fileWBT)
+        image = geo.export("glb-rigged")
+        return StreamingResponse(
+            content=BytesIO(image),
+            media_type="model/gltf-binary",
+            headers={
+                "Content-Disposition": f"attachment; filename={fileInfo.name}.glb"
+            },
+        )
+
     async def getAllUserInfoFiles(self, user: UserToken) -> list[FileDb]:
         try:
             rows = await self.__postgres.query(FileSql.getAllUserFiles.value, [user.id])

@@ -6,6 +6,7 @@ import mapbox_earcut as earcut
 import numpy as np
 import trimesh  # type: ignore
 from shapely import Geometry, MultiLineString, Polygon
+from shapely.ops import split
 
 from src.FileModule.exporters.geometryExporter import GeometryExporter
 
@@ -38,6 +39,62 @@ class MeshExporter(GeometryExporter, ABC):
         for leftIndex, group in joined.groupby(joined.index):
             childrenMap[leftIndex] = [int(right) for right in group["index_right"]]
         return gdf, childrenMap
+
+    def buildSolidPolygons(self, polygonList: list[Polygon]) -> list[Polygon]:
+        parents: dict[int, int | None] = {}
+        for childIndex, child in enumerate(polygonList):
+            containingPolygons = [
+                (parent.area, parentIndex)
+                for parentIndex, parent in enumerate(polygonList)
+                if parentIndex != childIndex
+                and parent.area > child.area
+                and parent.covers(child)
+            ]
+            parents[childIndex] = (
+                min(containingPolygons)[1] if containingPolygons else None
+            )
+
+        depths: dict[int, int] = {}
+
+        def getDepth(index: int) -> int:
+            if index in depths:
+                return depths[index]
+            parent = parents[index]
+            depths[index] = 0 if parent is None else getDepth(parent) + 1
+            return depths[index]
+
+        solidPolygons: list[Polygon] = []
+        for index, polygon in enumerate(polygonList):
+            if getDepth(index) % 2 != 0:
+                continue
+            holesCoordinates = [
+                list(interior.coords) for interior in polygon.interiors
+            ]
+            for childIndex, parent in parents.items():
+                if parent == index and getDepth(childIndex) == getDepth(index) + 1:
+                    holesCoordinates.append(
+                        list(polygonList[childIndex].exterior.coords)
+                    )
+            solidPolygons.append(
+                Polygon(shell=list(polygon.exterior.coords), holes=holesCoordinates)
+            )
+        return solidPolygons
+
+    def splitSolidPolygon(
+        self, solidPolygon: Polygon, splitter: Geometry | None
+    ) -> list[Polygon]:
+        if splitter is None or splitter.is_empty:
+            return [solidPolygon]
+
+        splitResult = split(solidPolygon, splitter)
+        pieces: list[Polygon] = []
+        geometries = splitResult.geoms if hasattr(splitResult, "geoms") else [splitResult]
+        for geometry in geometries:
+            if isinstance(geometry, Polygon):
+                pieces.append(geometry)
+            elif geometry.geom_type == "MultiPolygon":
+                pieces.extend(geometry.geoms)
+        return pieces
 
     def createExtrudedMesh(
         self, vertices: list[tuple[float, ...]], holeIndices: list[int]

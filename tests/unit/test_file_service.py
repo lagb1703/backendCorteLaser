@@ -163,6 +163,27 @@ class TestFileService:
         assert result is not None
 
     @pytest.mark.asyncio
+    async def test_get_glb_rigged(self, file_service, mock_postgres, mock_storage, mock_creator, sample_user_token):
+        mock_postgres.query = AsyncMock(return_value=[{
+            "id": 1,
+            "name": "test.dxf",
+            "date": "2024-01-01",
+            "md5": "abc123",
+            "bucket": "original",
+            "userId": 1
+        }])
+        mock_storage.download = MagicMock(return_value=b"wkb_data")
+        mock_creator.createGeometry = MagicMock()
+        mock_creator.createGeometry.return_value.export = MagicMock(return_value=b"glb_data")
+
+        result = await file_service.getGlbRigged("1", sample_user_token)
+
+        assert result is not None
+        mock_creator.createGeometry.return_value.export.assert_called_once_with(
+            "glb-rigged"
+        )
+
+    @pytest.mark.asyncio
     async def test_get_all_user_info_files(self, file_service, mock_postgres, sample_user_token):
         mock_postgres.query = AsyncMock(return_value=[
             {"id": 1, "name": "test1.dxf", "date": "2024-01-01", "md5": "abc123", "bucket": "original", "userId": 1},
