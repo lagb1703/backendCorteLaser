@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Hashable
 
 import geopandas as gpd
+import pandas as pd
 import mapbox_earcut as earcut
 import numpy as np
 import trimesh  # type: ignore
@@ -26,7 +27,7 @@ class MeshExporter(GeometryExporter, ABC):
 
     def buildHierarchy(
         self, polygonList: list[Polygon]
-    ) -> tuple[gpd.GeoDataFrame, dict[Hashable, list[int]]]:
+    ) -> tuple[pd.DataFrame, dict[Hashable, list[int]]]:
         gdf = gpd.GeoDataFrame(geometry=polygonList)
         if gdf.empty:
             return gdf, {}
@@ -67,9 +68,7 @@ class MeshExporter(GeometryExporter, ABC):
         for index, polygon in enumerate(polygonList):
             if getDepth(index) % 2 != 0:
                 continue
-            holesCoordinates = [
-                list(interior.coords) for interior in polygon.interiors
-            ]
+            holesCoordinates = [list(interior.coords) for interior in polygon.interiors]
             for childIndex, parent in parents.items():
                 if parent == index and getDepth(childIndex) == getDepth(index) + 1:
                     holesCoordinates.append(
@@ -83,12 +82,15 @@ class MeshExporter(GeometryExporter, ABC):
     def splitSolidPolygon(
         self, solidPolygon: Polygon, splitter: Geometry | None
     ) -> list[Polygon]:
-        if splitter is None or splitter.is_empty:
+        if splitter is None:
             return [solidPolygon]
 
+        # or splitter.is_empty
         splitResult = split(solidPolygon, splitter)
         pieces: list[Polygon] = []
-        geometries = splitResult.geoms if hasattr(splitResult, "geoms") else [splitResult]
+        geometries = (
+            splitResult.geoms if hasattr(splitResult, "geoms") else [splitResult]
+        )
         for geometry in geometries:
             if isinstance(geometry, Polygon):
                 pieces.append(geometry)
@@ -108,9 +110,7 @@ class MeshExporter(GeometryExporter, ABC):
         mesh.visual.face_colors = [0, 0, 255, 255]  # type: ignore
         return mesh
 
-    def createBendLineMesh(
-        self, lineString: MultiLineString
-    ) -> trimesh.Trimesh | None:
+    def createBendLineMesh(self, lineString: MultiLineString) -> trimesh.Trimesh | None:
         coords = list(lineString.geoms[0].coords)
         vertices: list[tuple[float, float, float]] = []
         faces: list[list[int]] = []
