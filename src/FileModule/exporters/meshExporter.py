@@ -1,4 +1,5 @@
 from abc import ABC
+from shapely.affinity import scale
 from typing import Hashable
 
 import geopandas as gpd
@@ -7,7 +8,7 @@ import mapbox_earcut as earcut
 import numpy as np
 import trimesh  # type: ignore
 from shapely import Geometry, MultiLineString, Polygon
-from shapely.ops import split
+from shapely.ops import split, unary_union
 
 from src.FileModule.exporters.geometryExporter import GeometryExporter
 
@@ -35,7 +36,12 @@ class MeshExporter(GeometryExporter, ABC):
         gdf["width"] = gdf.geometry.bounds["maxx"] - gdf.geometry.bounds["minx"]
         gdf["high"] = gdf.geometry.bounds["maxy"] - gdf.geometry.bounds["miny"]
         gdf = gdf.sort_values(by=["width", "high"], ascending=[False, False])
-        joined = gpd.sjoin(gdf, gdf, how="inner", predicate="intersects")  # type: ignore
+        shrunk_gdf = gdf.copy()
+        shrunk_gdf["geometry"] = shrunk_gdf.geometry.buffer(-1e-5)
+
+        # Eliminar geometrías que se hayan colapsado por ser demasiado pequeñas
+        valid_shrunk = shrunk_gdf[~shrunk_gdf.is_empty]
+        joined = gpd.sjoin(gdf, valid_shrunk, how="inner", predicate="covers")  # type: ignore
         childrenMap: dict[Hashable, list[int]] = {}
         for leftIndex, group in joined.groupby(joined.index):
             childrenMap[leftIndex] = [int(right) for right in group["index_right"]]
@@ -82,10 +88,16 @@ class MeshExporter(GeometryExporter, ABC):
     def splitSolidPolygon(
         self, solidPolygon: Polygon, splitter: Geometry | None
     ) -> list[Polygon]:
-        if splitter is None:
+        if splitter is None or splitter.is_empty:
             return [solidPolygon]
 
-        # or splitter.is_empty
+        # Overshoot each bend line a little so `split` can cut all the way
+        # across the polygon. Scaling about each line's own centroid keeps it
+        # collinear; scaling about the origin would displace it off the bend.
+        parts = splitter.geoms if hasattr(splitter, "geoms") else [splitter]
+        splitter = unary_union(
+            [scale(part, xfact=1.01, yfact=1.01, origin="centroid") for part in parts]
+        )
         splitResult = split(solidPolygon, splitter)
         pieces: list[Polygon] = []
         geometries = (

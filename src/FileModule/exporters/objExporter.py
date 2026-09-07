@@ -39,10 +39,10 @@ class ObjExporter(MeshExporter):
             holeIndices.append(len(vertices))
             meshes.append(self.createExtrudedMesh(vertices, holeIndices))
 
-        for lineString in linesList:
+        """for lineString in linesList:
             mesh = self.createBendLineMesh(lineString)
             if mesh is not None:
-                meshes.append(mesh)
+                meshes.append(mesh)"""
 
         scene = trimesh.Scene(meshes)
         buffer = BytesIO()

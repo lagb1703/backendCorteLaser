@@ -163,7 +163,7 @@ class TestFileService:
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_get_glb_rigged(self, file_service, mock_postgres, mock_storage, mock_creator, sample_user_token):
+    async def test_get_gbl(self, file_service, mock_postgres, mock_storage, mock_creator, sample_user_token):
         mock_postgres.query = AsyncMock(return_value=[{
             "id": 1,
             "name": "test.dxf",
@@ -176,11 +176,11 @@ class TestFileService:
         mock_creator.createGeometry = MagicMock()
         mock_creator.createGeometry.return_value.export = MagicMock(return_value=b"glb_data")
 
-        result = await file_service.getGlbRigged("1", sample_user_token)
+        result = await file_service.getGbl("1", sample_user_token)
 
         assert result is not None
         mock_creator.createGeometry.return_value.export.assert_called_once_with(
-            "glb-rigged"
+            "glb"
         )
 
     @pytest.mark.asyncio

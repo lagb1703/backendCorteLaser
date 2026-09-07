@@ -22,7 +22,6 @@ from shapely.geometry import LineString
 from src.FileModule.exporters import (
     GeometryExporter,
     GlbExporter,
-    GlbRiggedExporter,
     ImageExporter,
     ObjExporter,
 )
@@ -40,7 +39,6 @@ class ShapelyAnalyzer(GeometriesAnalyzer):
             "png": ImageExporter(),
             "obj": ObjExporter(),
             "glb": GlbExporter(),
-            "glb-rigged": GlbRiggedExporter(),
         }
 
     def checkGeometries(self) -> bool:
