@@ -288,8 +288,11 @@ class GlbExporter(MeshExporter):
     ) -> dict[str, object]:
         # The fold is always a rotation around the node's own X axis; `axis` is
         # that same direction read in the flat sheet, for the front end to show.
-        # `start` and `end` span the whole bend line, while `pivot` sits on the
-        # stretch of it where the two pieces really touch.
+        # `start` and `end` span the whole bend line, while `bendPivot` sits on
+        # the stretch of it where the two pieces really touch. It cannot be
+        # called `pivot`: three.js reserves `userData.pivot` and, on any node
+        # that has children, moves the node and zeroes its first child to
+        # rebuild a pivot its own exporter writes, which tears the part apart.
         start, end = self.__bendLineEnds(hinge)
         return {
             "type": "bend-node",
@@ -301,7 +304,7 @@ class GlbExporter(MeshExporter):
             "occurrence": int(occurrence),
             "start": start,
             "end": end,
-            "pivot": [float(value) for value in hinge.pivot],
+            "bendPivot": [float(value) for value in hinge.pivot],
             "axis": [float(value) for value in axis],
         }
 

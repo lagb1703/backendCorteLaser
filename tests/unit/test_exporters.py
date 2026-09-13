@@ -121,7 +121,7 @@ def test_glb_exporter_exposes_bend_metadata_on_every_son():
     assert extras["type"] == "bend-node"
     assert extras["nodeId"] == "son0"
     assert extras["parentId"] == "father"
-    assert extras["pivot"] == pytest.approx([10.0, 5.0, 0.005])
+    assert extras["bendPivot"] == pytest.approx([10.0, 5.0, 0.005])
     # the axis runs along the bend line, oriented so a positive angle folds up
     assert extras["axis"] == pytest.approx([0.0, -1.0, 0.0])
     # the front end labels each control from the bend line it hangs from
@@ -129,6 +129,28 @@ def test_glb_exporter_exposes_bend_metadata_on_every_son():
     assert extras["occurrence"] == 0
     assert extras["start"] == pytest.approx([10.0, 0.0, 0.005])
     assert extras["end"] == pytest.approx([10.0, 10.0, 0.005])
+
+
+def test_glb_exporter_keeps_bend_metadata_out_of_the_names_three_js_claims():
+    """three.js owns `userData.pivot`, so the pivot ships under another name.
+
+    Its loader rebuilds an `Object3D.pivot` from that key on any node that has
+    children: it shifts the node and zeroes its first child, which tore a
+    grandson and its parent off the part. The chained plate is exactly that
+    shape, so it is the case worth pinning.
+    """
+    scene = loadFoldedPlate()
+    edges = scene.graph.transforms.edge_data
+
+    # the pivots are read in the flat sheet, so both sit on their own bend line
+    for edge, pivot in (
+        (("father", "son0"), [10.0, 5.0, 0.005]),
+        (("son0", "son1"), [20.0, 5.0, 0.005]),
+    ):
+        extras = edges[edge]["metadata"]
+        assert extras["type"] == "bend-node"
+        assert "pivot" not in extras
+        assert extras["bendPivot"] == pytest.approx(pivot)
 
 
 def test_glb_exporter_son_folds_around_its_bend_line():
@@ -202,7 +224,7 @@ def test_glb_exporter_ignores_the_bend_zone_lines():
     sons = [node for node in scene.graph.nodes if node.startswith("son")]
     assert sons == ["son0"]
     extras = scene.graph.transforms.edge_data[("father", "son0")]["metadata"]
-    assert extras["pivot"] == pytest.approx([10.0, 5.0, 0.005])
+    assert extras["bendPivot"] == pytest.approx([10.0, 5.0, 0.005])
 
 
 def test_glb_exporter_numbers_both_hinges_of_one_bend_line():
@@ -229,7 +251,7 @@ def test_glb_exporter_numbers_both_hinges_of_one_bend_line():
     for extras in sons:
         assert extras["start"] == pytest.approx([0.0, 15.0, 0.005])
         assert extras["end"] == pytest.approx([30.0, 15.0, 0.005])
-    assert sorted(extras["pivot"][0] for extras in sons) == pytest.approx([5.0, 25.0])
+    assert sorted(extras["bendPivot"][0] for extras in sons) == pytest.approx([5.0, 25.0])
 
 
 def test_glb_exporter_closes_a_piece_with_a_repeated_vertex():
