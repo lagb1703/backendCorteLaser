@@ -28,14 +28,14 @@ class ObjExporter(MeshExporter):
             ]
             processed.add(index)
             processed.update(childIndices)
-            vertices: list[tuple[float, ...]] = list(polygon.exterior.coords)[:-1]
+            vertices: list[tuple[float, ...]] = self.ringCoordinates(polygon.exterior)
             holeIndices: list[int] = []
             for childIndex in childIndices:
                 geometry: Geometry = gdf.loc[childIndex, "geometry"]
                 if not isinstance(geometry, Polygon):
                     continue
                 holeIndices.append(len(vertices))
-                vertices.extend(list(geometry.exterior.coords)[:-1])
+                vertices.extend(self.ringCoordinates(geometry.exterior))
             holeIndices.append(len(vertices))
             meshes.append(self.createExtrudedMesh(vertices, holeIndices))
 

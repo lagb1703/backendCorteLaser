@@ -1,50 +1,61 @@
 from dataclasses import dataclass
 from io import BytesIO
-from math import atan2, cos, sin
+from math import atan2
 
 import geopandas as gpd
 import numpy as np
-from shapely import LineString, MultiLineString, Polygon
-from shapely.ops import unary_union
 import trimesh  # type: ignore
+from shapely import LineString, Point, Polygon
+from shapely.ops import unary_union
 
 from src.FileModule.exporters.meshExporter import MeshExporter
 
 
 @dataclass
-class BendHinge:
-    lineIndex: int
-    axis: LineString
+class Hinge:
+    """The edge two pieces share after a bend line cut them apart."""
+
     firstPiece: int
     secondPiece: int
+    pivot: np.ndarray
+    axis: np.ndarray
+    lineIndex: int
+    # The bend line this hinge lies on, or the shared edge itself when the cut
+    # cannot be traced back to one.
+    axisLine: LineString
 
 
 class GlbExporter(MeshExporter):
     """Create a GLB whose son nodes fold around their own bend line.
 
-    Every piece is emitted as its own node. A son node's local matrix places
-    its origin on the bend line it hangs from, with local +X along that line,
-    and its mesh is baked into that frame. Rotating a son around its local X
-    therefore folds it exactly on the bend line, and its own sons follow.
+    Every piece becomes its own node. A son node's frame sits on the bend line
+    it hangs from, at half the sheet thickness, with local +X along that line
+    and the piece itself on local +Y; its mesh is baked into that frame.
+    Rotating a son around its local X therefore folds it exactly on the bend
+    line, a positive angle always folds upwards, and its own sons follow
+    because they live in its frame.
     """
 
     sheetThickness = 0.01
-    hingeHeight = sheetThickness / 2
-    intersectionEpsilon = 1e-8
+    pivotHeight = sheetThickness / 2
+    epsilon = 1e-9
 
     def export(self, geometries: gpd.GeoSeries) -> bytes:
         polygonList, linesList = self.splitGeometries(geometries)
         solidPolygons = self.buildSolidPolygons(polygonList)
-        allBendLines = unary_union(linesList) if linesList else None
+        # Only the first geometry of each group is the bend line; the rest mark
+        # the extent of its bend zone and must not cut the part.
+        bendAxes = [lineString.geoms[0] for lineString in linesList if lineString.geoms]
+        allLines = unary_union(bendAxes) if bendAxes else None
 
         scene = trimesh.Scene()
-        counters = {"son": 0, "father": 0}
+        counters = {"father": 0, "son": 0}
 
         for partIndex, solidPolygon in enumerate(solidPolygons):
-            pieces = self.splitSolidPolygon(solidPolygon, allBendLines)
+            pieces = self.splitSolidPolygon(solidPolygon, allLines)
             if not pieces:
                 continue
-            hinges = self.__buildHinges(pieces, linesList)
+            hinges = self.__buildHinges(pieces, bendAxes)
             self.__addPartNodes(scene, partIndex, pieces, hinges, counters)
 
         buffer = BytesIO()
@@ -56,10 +67,10 @@ class GlbExporter(MeshExporter):
         scene: trimesh.Scene,
         partIndex: int,
         pieces: list[Polygon],
-        hinges: list[BendHinge],
+        hinges: list[Hinge],
         counters: dict[str, int],
     ) -> None:
-        incident: dict[int, list[BendHinge]] = {
+        incident: dict[int, list[Hinge]] = {
             index: [] for index in range(len(pieces))
         }
         for hinge in hinges:
@@ -68,6 +79,7 @@ class GlbExporter(MeshExporter):
 
         frames: dict[int, np.ndarray] = {}
         nodeNames: dict[int, str] = {}
+        # A slot can interrupt one bend line, so it hinges more than one pair.
         lineOccurrences: dict[int, int] = {}
         visited: set[int] = set()
         pieceOrder = sorted(
@@ -77,7 +89,9 @@ class GlbExporter(MeshExporter):
         for rootPiece in pieceOrder:
             if rootPiece in visited:
                 continue
-            rootName = "father" if counters["father"] == 0 else f"father{counters['father']}"
+            rootName = (
+                "father" if counters["father"] == 0 else f"father{counters['father']}"
+            )
             counters["father"] += 1
             identity = np.eye(4, dtype=np.float64)
             frames[rootPiece] = identity
@@ -110,12 +124,17 @@ class GlbExporter(MeshExporter):
                     if childPiece in visited:
                         continue
 
-                    frame = self.__hingeFrame(hinge.axis, pieces[childPiece])
+                    axis = self.__orientAxis(
+                        hinge.axis, hinge.pivot, pieces[childPiece]
+                    )
+                    frame = self.__hingeFrame(hinge.pivot, axis)
+                    # Both frames are expressed in world space, so cancelling
+                    # the parent's leaves the child's matrix relative to it.
                     localMatrix = np.linalg.inv(frames[parentPiece]) @ frame
-                    occurrence = lineOccurrences.get(hinge.lineIndex, 0)
-                    lineOccurrences[hinge.lineIndex] = occurrence + 1
                     nodeName = f"son{counters['son']}"
                     counters["son"] += 1
+                    occurrence = lineOccurrences.get(hinge.lineIndex, 0)
+                    lineOccurrences[hinge.lineIndex] = occurrence + 1
 
                     frames[childPiece] = frame
                     nodeNames[childPiece] = nodeName
@@ -129,11 +148,11 @@ class GlbExporter(MeshExporter):
                         frame,
                         self.__bendExtras(
                             hinge,
+                            axis,
                             partIndex,
                             occurrence,
                             nodeName,
                             nodeNames[parentPiece],
-                            frame,
                         ),
                     )
                     queue.append(childPiece)
@@ -148,15 +167,17 @@ class GlbExporter(MeshExporter):
         frame: np.ndarray,
         extras: dict[str, object],
     ) -> None:
-        vertices: list[tuple[float, ...]] = list(piece.exterior.coords)[:-1]
-        ringEndIndices = [len(vertices)]
+        vertices: list[tuple[float, ...]] = self.ringCoordinates(piece.exterior)
+        ringEnds = [len(vertices)]
         for interior in piece.interiors:
-            vertices.extend(list(interior.coords)[:-1])
-            ringEndIndices.append(len(vertices))
+            vertices.extend(self.ringCoordinates(interior))
+            ringEnds.append(len(vertices))
         if not vertices:
             return
 
-        mesh = self.createExtrudedMesh(vertices, ringEndIndices)
+        mesh = self.createExtrudedMesh(vertices, ringEnds)
+        # Bake the mesh into its own frame, so that localMatrix @ meshLocal
+        # puts every vertex back where the flat sheet had it.
         mesh.apply_transform(np.linalg.inv(frame))
         scene.add_geometry(
             mesh,
@@ -168,111 +189,108 @@ class GlbExporter(MeshExporter):
         )
 
     def __buildHinges(
-        self,
-        pieces: list[Polygon],
-        linesList: list[MultiLineString],
-    ) -> list[BendHinge]:
-        hinges: list[BendHinge] = []
-        seen: set[tuple[int, int, int]] = set()
-        for lineIndex, lineString in enumerate(linesList):
-            if not lineString.geoms:
-                continue
-            axis = lineString.geoms[0]
-            if not isinstance(axis, LineString) or axis.length <= self.intersectionEpsilon:
-                continue
-            coordinates = list(axis.coords)
-            start = np.asarray(coordinates[0][:2], dtype=np.float64)
-            end = np.asarray(coordinates[-1][:2], dtype=np.float64)
-            direction = end - start
-            length = float(np.linalg.norm(direction))
-            if length <= self.intersectionEpsilon:
-                continue
-
-            positive: list[tuple[float, int]] = []
-            negative: list[tuple[float, int]] = []
-            for pieceIndex, piece in enumerate(pieces):
-                intersection = piece.boundary.intersection(axis)
-                if intersection.is_empty or intersection.length <= self.intersectionEpsilon:
+        self, pieces: list[Polygon], bendAxes: list[LineString]
+    ) -> list[Hinge]:
+        hinges: list[Hinge] = []
+        for firstIndex in range(len(pieces)):
+            for secondIndex in range(firstIndex + 1, len(pieces)):
+                sharedEdge = self.__sharedEdge(pieces[firstIndex], pieces[secondIndex])
+                if sharedEdge is None:
                     continue
-                reference = piece.representative_point()
-                relative = np.asarray(
-                    [reference.x, reference.y], dtype=np.float64
-                ) - start
-                crossProduct = direction[0] * relative[1] - direction[1] * relative[0]
-                sideEpsilon = self.intersectionEpsilon * max(length, 1.0)
-                if abs(crossProduct) <= sideEpsilon:
+                axis = self.__edgeDirection(sharedEdge)
+                if axis is None:
                     continue
-                position = axis.project(intersection.representative_point())
-                if crossProduct > 0:
-                    positive.append((float(position), pieceIndex))
-                else:
-                    negative.append((float(position), pieceIndex))
-
-            positive.sort()
-            negative.sort()
-            for (_, positivePiece), (_, negativePiece) in zip(positive, negative):
-                if positivePiece == negativePiece:
-                    continue
-                pair = tuple(sorted((positivePiece, negativePiece)))
-                key = (lineIndex, pair[0], pair[1])
-                if key in seen:
-                    continue
-                seen.add(key)
+                middle = sharedEdge.interpolate(0.5, normalized=True)
+                pivot = np.array(
+                    [middle.x, middle.y, self.pivotHeight], dtype=np.float64
+                )
+                lineIndex = self.__bendLineOf(middle, bendAxes)
                 hinges.append(
-                    BendHinge(
-                        lineIndex=lineIndex,
-                        axis=axis,
-                        firstPiece=pair[0],
-                        secondPiece=pair[1],
+                    Hinge(
+                        firstIndex,
+                        secondIndex,
+                        pivot,
+                        axis,
+                        lineIndex,
+                        bendAxes[lineIndex] if lineIndex >= 0 else sharedEdge,
                     )
                 )
         return hinges
 
-    def __hingeFrame(self, axis: LineString, childPiece: Polygon) -> np.ndarray:
-        coordinates = list(axis.coords)
+    def __bendLineOf(self, middle: Point, bendAxes: list[LineString]) -> int:
+        """Which bend line the shared edge was cut along, -1 when none of them.
+
+        The edge is a piece of that line, so its middle sits on it; anything
+        further away is a cut this exporter did not make from a bend.
+        """
+        if not bendAxes:
+            return -1
+        closest = min(range(len(bendAxes)), key=lambda i: bendAxes[i].distance(middle))
+        return closest if bendAxes[closest].distance(middle) <= self.epsilon else -1
+
+    def __sharedEdge(
+        self, firstPiece: Polygon, secondPiece: Polygon
+    ) -> LineString | None:
+        shared = firstPiece.boundary.intersection(secondPiece.boundary)
+        if shared.is_empty or shared.length <= self.epsilon:
+            return None
+        if isinstance(shared, LineString):
+            return shared
+        # A corner touch adds points to the intersection; keep the longest line.
+        segments = [
+            geometry
+            for geometry in getattr(shared, "geoms", [])
+            if isinstance(geometry, LineString) and geometry.length > self.epsilon
+        ]
+        return max(segments, key=lambda segment: segment.length) if segments else None
+
+    def __edgeDirection(self, sharedEdge: LineString) -> np.ndarray | None:
+        coordinates = list(sharedEdge.coords)
         start = np.asarray(coordinates[0][:2], dtype=np.float64)
         end = np.asarray(coordinates[-1][:2], dtype=np.float64)
         direction = end - start
         length = float(np.linalg.norm(direction))
-        if length <= self.intersectionEpsilon:
-            raise ValueError("A bend line must have a non-zero axis")
-        direction = direction / length
-
-        # Keep the folded piece on the local +Y side so that a positive angle
-        # always folds the same way, whatever direction the DXF drew the line in.
-        midpoint = (start + end) / 2
-        reference = childPiece.representative_point()
-        relative = np.asarray([reference.x, reference.y], dtype=np.float64) - midpoint
-        if direction[0] * relative[1] - direction[1] * relative[0] < 0:
-            direction = -direction
-
-        angle = atan2(float(direction[1]), float(direction[0]))
-        rotation = np.array(
-            [
-                [cos(angle), -sin(angle), 0.0],
-                [sin(angle), cos(angle), 0.0],
-                [0.0, 0.0, 1.0],
-            ],
-            dtype=np.float64,
+        if length <= self.epsilon:
+            return None
+        return np.array(
+            [direction[0] / length, direction[1] / length, 0.0], dtype=np.float64
         )
-        matrix = np.eye(4, dtype=np.float64)
-        matrix[:3, :3] = rotation
-        matrix[:3, 3] = [midpoint[0], midpoint[1], self.hingeHeight]
-        return matrix
+
+    def __hingeFrame(self, pivot: np.ndarray, axis: np.ndarray) -> np.ndarray:
+        # Turn local +X onto the bend line, which puts the piece on local +Y,
+        # so that folding is a plain rotation around the node's own X axis.
+        frame = trimesh.transformations.rotation_matrix(
+            atan2(float(axis[1]), float(axis[0])), [0.0, 0.0, 1.0]
+        )
+        frame[:3, 3] = pivot
+        return frame
+
+    def __orientAxis(
+        self, axis: np.ndarray, pivot: np.ndarray, childPiece: Polygon
+    ) -> np.ndarray:
+        # Keep the folded piece on the left of the axis, so that a positive
+        # angle always folds upwards whatever direction the DXF drew the line.
+        reference = childPiece.representative_point()
+        relative = np.array(
+            [reference.x - pivot[0], reference.y - pivot[1]], dtype=np.float64
+        )
+        crossProduct = axis[0] * relative[1] - axis[1] * relative[0]
+        return -axis if crossProduct < 0 else axis
 
     def __bendExtras(
         self,
-        hinge: BendHinge,
+        hinge: Hinge,
+        axis: np.ndarray,
         partIndex: int,
         occurrence: int,
         nodeName: str,
         parentNodeName: str,
-        frame: np.ndarray,
     ) -> dict[str, object]:
-        coordinates = list(hinge.axis.coords)
-        start = np.asarray(coordinates[0][:2], dtype=np.float64)
-        end = np.asarray(coordinates[-1][:2], dtype=np.float64)
-        direction = np.asarray(frame[:2, 0], dtype=np.float64)
+        # The fold is always a rotation around the node's own X axis; `axis` is
+        # that same direction read in the flat sheet, for the front end to show.
+        # `start` and `end` span the whole bend line, while `pivot` sits on the
+        # stretch of it where the two pieces really touch.
+        start, end = self.__bendLineEnds(hinge)
         return {
             "type": "bend-node",
             "role": "son",
@@ -281,7 +299,15 @@ class GlbExporter(MeshExporter):
             "part": int(partIndex),
             "bendLineIndex": int(hinge.lineIndex),
             "occurrence": int(occurrence),
-            "start": [float(start[0]), float(start[1]), self.hingeHeight],
-            "end": [float(end[0]), float(end[1]), self.hingeHeight],
-            "axis": [float(direction[0]), float(direction[1]), 0.0],
+            "start": start,
+            "end": end,
+            "pivot": [float(value) for value in hinge.pivot],
+            "axis": [float(value) for value in axis],
         }
+
+    def __bendLineEnds(self, hinge: Hinge) -> tuple[list[float], list[float]]:
+        coordinates = list(hinge.axisLine.coords)
+        return (
+            [float(coordinates[0][0]), float(coordinates[0][1]), self.pivotHeight],
+            [float(coordinates[-1][0]), float(coordinates[-1][1]), self.pivotHeight],
+        )

@@ -1,5 +1,5 @@
 from abc import ABC
-from shapely.affinity import scale
+from math import hypot
 from typing import Hashable
 
 import geopandas as gpd
@@ -7,13 +7,20 @@ import pandas as pd
 import mapbox_earcut as earcut
 import numpy as np
 import trimesh  # type: ignore
-from shapely import Geometry, MultiLineString, Polygon
+from shapely import Geometry, LinearRing, LineString, MultiLineString, Polygon
 from shapely.ops import split, unary_union
 
 from src.FileModule.exporters.geometryExporter import GeometryExporter
 
 
 class MeshExporter(GeometryExporter, ABC):
+
+    # How far a bend line overshoots the profile, as a fraction of the
+    # polygon's diagonal. Small on purpose: a large overshoot would cut
+    # material the bend line never reached.
+    extensionFactor = 0.002
+    # Below this distance two ring points are the same point.
+    vertexEpsilon = 1e-9
 
     def splitGeometries(
         self, geometries: gpd.GeoSeries
@@ -54,8 +61,7 @@ class MeshExporter(GeometryExporter, ABC):
                 (parent.area, parentIndex)
                 for parentIndex, parent in enumerate(polygonList)
                 if parentIndex != childIndex
-                and parent.area > child.area
-                and parent.covers(child)
+                and parent.contains(child)
             ]
             parents[childIndex] = (
                 min(containingPolygons)[1] if containingPolygons else None
@@ -91,13 +97,14 @@ class MeshExporter(GeometryExporter, ABC):
         if splitter is None or splitter.is_empty:
             return [solidPolygon]
 
-        # Overshoot each bend line a little so `split` can cut all the way
-        # across the polygon. Scaling about each line's own centroid keeps it
-        # collinear; scaling about the origin would displace it off the bend.
+        # `split` ignores a line that only touches the profile, so every bend
+        # line has to overshoot it. Extending each line along its own direction
+        # keeps the cut exactly on the bend; scaling it about the origin would
+        # displace it instead.
+        minx, miny, maxx, maxy = solidPolygon.bounds
+        margin = hypot(maxx - minx, maxy - miny) * self.extensionFactor
         parts = splitter.geoms if hasattr(splitter, "geoms") else [splitter]
-        splitter = unary_union(
-            [scale(part, xfact=1.01, yfact=1.01, origin="centroid") for part in parts]
-        )
+        splitter = unary_union([self.extendLine(part, margin) for part in parts])
         splitResult = split(solidPolygon, splitter)
         pieces: list[Polygon] = []
         geometries = (
@@ -109,6 +116,40 @@ class MeshExporter(GeometryExporter, ABC):
             elif geometry.geom_type == "MultiPolygon":
                 pieces.extend(geometry.geoms)
         return pieces
+
+    def extendLine(self, line: Geometry, margin: float) -> Geometry:
+        if not isinstance(line, LineString):
+            return line
+        coordinates = list(line.coords)
+        start = np.asarray(coordinates[0][:2], dtype=np.float64)
+        end = np.asarray(coordinates[-1][:2], dtype=np.float64)
+        direction = end - start
+        length = float(np.linalg.norm(direction))
+        if length == 0:
+            return line
+        direction = direction / length
+        return LineString(
+            [tuple(start - direction * margin), tuple(end + direction * margin)]
+        )
+
+    def ringCoordinates(self, ring: LinearRing) -> list[tuple[float, ...]]:
+        """The ring's points, without its closing copy or any repeated vertex.
+
+        A zero length segment is valid for shapely but makes the triangulation
+        emit degenerate faces, and the extrusion then raises walls on them,
+        which leaves the mesh with a crack instead of a closed solid.
+        """
+        coordinates: list[tuple[float, ...]] = []
+        for coordinate in list(ring.coords)[:-1]:
+            if coordinates and self.__samePoint(coordinate, coordinates[-1]):
+                continue
+            coordinates.append(coordinate)
+        while len(coordinates) > 1 and self.__samePoint(coordinates[0], coordinates[-1]):
+            coordinates.pop()
+        return coordinates
+
+    def __samePoint(self, first: tuple[float, ...], second: tuple[float, ...]) -> bool:
+        return hypot(first[0] - second[0], first[1] - second[1]) <= self.vertexEpsilon
 
     def createExtrudedMesh(
         self, vertices: list[tuple[float, ...]], holeIndices: list[int]
