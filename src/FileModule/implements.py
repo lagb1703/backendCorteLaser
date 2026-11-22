@@ -162,11 +162,13 @@ class DxfAdapter(GeometriesAdapter[Geometry]):
             )
         geometries.extend(polygonize(geoms))
         stringLines: list[MultiLineString] = []
+        for layer in doc.layers:
+            print(f"Capa: {layer.dxf.name}")
         for line in msp.query("*[layer=='BEND']"):
             p_path = path.make_path(line)
             vertices = list(p_path.flattening(distance=0.1))
             stringLines.append(MultiLineString([LineString(vertices)]))
-        for i, line in enumerate(msp.query("*[layer=='BEND_EXTENT']")):
+        for i, line in enumerate(msp.query("*[layer=='BEND_EXTENT,Defpoints']")):
             p_path = path.make_path(line)
             vertices = list(p_path.flattening(distance=0.1))
             line = LineString(vertices)
